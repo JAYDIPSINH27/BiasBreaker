@@ -1,3 +1,6 @@
+# Backend Django
+backend/.env.local
+backend/**/__pycache__
 # Logs
 logs
 *.log
