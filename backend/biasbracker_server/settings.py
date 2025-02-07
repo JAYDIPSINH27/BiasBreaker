@@ -180,6 +180,7 @@ else:
     }
     AWS_DEFAULT_ACL = 'public-read'
     AWS_LOCATION = 'static'
+    AWS_MEDIA_LOCATION = 'media'
     AWS_S3_CUSTOM_DOMAIN = getenv('AWS_S3_CUSTOM_DOMAIN')
     STORAGES={
         'default': {"BACKEND":"storages.backends.s3boto3.S3Boto3Storage"},
@@ -208,7 +209,7 @@ REST_FRAMEWORK = {
 DJOSER = {
     'PASSWORD_RESET_CONFIRM_URL': 'password-reset/{uid}/{token}',
     'SEND_ACTIVATION_EMAIL': True,
-    'ACTIVATION_URL': 'activate/{uid}/{token}',
+    'ACTIVATION_URL': 'activatation/{uid}/{token}',
     'USER_CREATE_PASSWORD_RETYPE': True,
     'PASSWORD_RESET_CONFIRM_RETYPE': True,
     'TOKEN_MODEL': None,
