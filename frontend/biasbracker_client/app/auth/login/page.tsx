@@ -1,9 +1,5 @@
-const Page = () => {
-    return (
-      <div>
-        <h1>Login</h1>
-      </div>
-    )
-  }
-  
-  export default Page
+import LoginForm from "@/components/forms/LoginForm";
+
+export default function Page() {
+  return <LoginForm />;
+}

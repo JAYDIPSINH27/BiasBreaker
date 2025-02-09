@@ -22,6 +22,9 @@ const authApiSlice = apiSlice.injectEndpoints({
 		retrieveUser: builder.query<User, void>({
 			query: () => '/users/me/',
 		}),
+		getGoogleAuthURL: builder.query<{ authorization_url: string }, string>({
+			query: (redirect_uri) => `/o/google-oauth2/?redirect_uri=${encodeURIComponent(redirect_uri)}`,
+		  }),
 		socialAuthenticate: builder.mutation<
 			CreateUserResponse,
 			SocialAuthArgs
@@ -96,6 +99,7 @@ const authApiSlice = apiSlice.injectEndpoints({
 export const {
 	useRetrieveUserQuery,
 	useSocialAuthenticateMutation,
+	useGetGoogleAuthURLQuery,
 	useLoginMutation,
 	useRegisterMutation,
 	useVerifyMutation,
