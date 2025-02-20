@@ -6,6 +6,7 @@ import { Navbar, Footer } from "@/components/common";
 import Provider from "@/redux/provider";
 import { Setup } from "@/components/utils";
 
+
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
@@ -33,9 +34,11 @@ export default function RootLayout({
       >
         <Provider>
           <Setup />
+          {/* <ProtectedRouter> */}
           <Navbar />
           <div>{children}</div>
           <Footer />
+          {/* </ProtectedRouter> */}
         </Provider>
       </body>
     </html>

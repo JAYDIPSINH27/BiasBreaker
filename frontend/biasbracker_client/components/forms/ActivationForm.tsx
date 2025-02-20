@@ -2,18 +2,15 @@
 
 import { useEffect, useState } from "react";
 import { useActivationMutation } from "@/redux/features/authApiSlice";
-import { useSearchParams, useRouter } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 import Spinner from "../common/Spinner";
 import { motion } from "framer-motion";
 
 const ActivationForm = () => {
-  const searchParams = useSearchParams();
+  const { uid, token } = useParams(); // Extract UID & Token from URL path
   const router = useRouter();
   const [activate, { isLoading }] = useActivationMutation();
-
-  const uid = searchParams.get("uid");
-  const token = searchParams.get("token");
   const [status, setStatus] = useState<"loading" | "success" | "error">("loading");
 
   useEffect(() => {

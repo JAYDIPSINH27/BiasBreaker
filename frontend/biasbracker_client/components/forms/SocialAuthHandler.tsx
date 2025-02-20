@@ -13,7 +13,7 @@ const SocialAuthHandler = () => {
   const [isAuthenticating, setIsAuthenticating] = useState(false);
 
   // Extract parameters from callback URL
-  const provider = "google"; // Hardcoded for now, update dynamically if needed
+  const provider = "google-oauth2"; // Hardcoded for now, update dynamically if needed
   const state = searchParams.get("state");
   const code = searchParams.get("code");
 
