@@ -16,6 +16,7 @@ from django.core.management.utils import get_random_secret_key
 import dotenv
 import sys
 import dj_database_url
+from datetime import timedelta
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -218,8 +219,20 @@ DJOSER = {
     'SOCIAL_AUTH_ALLOWED_REDIRECT_URIS': getenv('REDIRECT_URIS').split(",")
 }
 
+SIMPLE_JWT = {
+    'AUTH_HEADER_TYPES': ('Bearer',),
+    'ACCESS_TOKEN_LIFETIME': timedelta(days=1),  # Access token valid for 1 day
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=1),  # Refresh token valid for 1 day
+    'ROTATE_REFRESH_TOKENS': True,  # Optional: Generates a new refresh token upon usage
+    'BLACKLIST_AFTER_ROTATION': True,  # Optional: Blacklists old refresh tokens
+    'ALGORITHM': 'HS256',
+    'SIGNING_KEY': SECRET_KEY,
+    'VERIFYING_KEY': None,
+    'AUTH_TOKEN_CLASSES': ('rest_framework_simplejwt.tokens.AccessToken',),
+}
+
 AUTH_COOKIE = 'access'
-AUTH_COOKIE_ACCESS_MAX_AGE = 60 * 5
+AUTH_COOKIE_ACCESS_MAX_AGE = 60 *60* 5
 AUTH_COOKIE_REFRESH_MAX_AGE = 60 * 60 * 24
 # AUTH_COOKIE_SECURE = getenv("AUTH_COOKIE_SECURE", "True") == "True"
 AUTH_COOKIE_SECURE = False
