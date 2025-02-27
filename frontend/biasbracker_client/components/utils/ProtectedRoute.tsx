@@ -6,16 +6,26 @@ import { useRouter } from "next/navigation";
 import Spinner from "@/components/common/Spinner";
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
-  const { data: user, isLoading, isError } = useRetrieveUserQuery(undefined, {
-    pollingInterval: 60000, // Poll every 60 seconds for user authentication status
+  const { data: user, isLoading, isError, refetch } = useRetrieveUserQuery(undefined, {
+    pollingInterval: 60000, 
   });
   const router = useRouter();
 
   useEffect(() => {
     if (!isLoading && isError) {
-      router.push("/auth/login"); // Redirect if not authenticated
+      router.push("/auth/login");
     }
-  }, [user, isLoading, isError, router]);
+  }, [isLoading, isError, router]);
+
+  useEffect(() => {
+    if (!isLoading && user) {
+      router.push("/dashboard");
+    }
+  }, [user, isLoading, router]);
+
+  useEffect(() => {
+    refetch();
+  }, []);
 
   if (isLoading) {
     return (

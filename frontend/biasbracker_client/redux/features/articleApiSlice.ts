@@ -7,22 +7,38 @@ export const articleApiSlice = apiSlice.injectEndpoints({
         url: "articles/generate/",
         method: "POST",
         body: { topic },
-        // headers: {
-        //   Authorization: `Bearer ${localStorage.getItem("access")}`, // Ensure token is sent
-        // },
       }),
     }),
     getUserArticles: builder.query({
-      query: () => ({
-        url: "articles/user-articles/",
-        method: "GET",
-        // headers: {
-        //   Authorization: `Bearer ${localStorage.getItem("access")}`, // Ensure token is sent
-        // },
+      query: () => "articles/user-articles/",
+    }),
+    generateAlternativePerspective: builder.mutation({
+      query: (articleId) => ({
+        url: `articles/alternative/generate/${articleId}/`,
+        method: "POST",
       }),
+    }),
+    getAlternativePerspective: builder.query({
+      query: (articleId) => `articles/alternative/${articleId}/`,
+    }),
+    generateQuiz: builder.mutation({
+      query: (articleId) => ({
+        url: `articles/quiz/generate/${articleId}/`,
+        method: "POST",
+      }),
+    }),
+    getQuiz: builder.query({
+      query: (articleId) => `articles/quiz/${articleId}/`,
     }),
   }),
   overrideExisting: false,
 });
 
-export const { useGenerateArticleMutation, useGetUserArticlesQuery } = articleApiSlice;
+export const {
+  useGenerateArticleMutation,
+  useGetUserArticlesQuery,
+  useGenerateAlternativePerspectiveMutation,
+  useGetAlternativePerspectiveQuery,
+  useGenerateQuizMutation,
+  useGetQuizQuery,
+} = articleApiSlice;

@@ -4,9 +4,20 @@ import { useState } from "react";
 import TopicCloud from "@/components/common/TopicCloud";
 import ArticleDashboard from "@/components/common/ArticleDashboard";
 import ArticleDetail from "@/components/common/ArticleDetail";
+import { useGetUserArticlesQuery } from "@/redux/features/articleApiSlice";
 
 const Page = () => {
+  const [selectedArticleId, setSelectedArticleId] = useState<number | null>(null);
   const [selectedArticle, setSelectedArticle] = useState<any>(null);
+
+  //  Fetch articles dynamically
+  const { data: articles = [], refetch } = useGetUserArticlesQuery();
+
+  // Handle article selection with ID and full content
+  const handleSelectArticle = (articleId: number, articleData: any) => {
+    setSelectedArticleId(articleId);
+    setSelectedArticle(articleData);
+  };
 
   return (
     <div className="p-6">
@@ -14,11 +25,19 @@ const Page = () => {
 
       {!selectedArticle ? (
         <>
-          <TopicCloud onArticleGenerated={() => window.location.reload()} />
-          <ArticleDashboard onSelectArticle={setSelectedArticle} />
+          {/* Replace reload with refetch */}
+          <TopicCloud onArticleGenerated={refetch} /> 
+          <ArticleDashboard onSelectArticle={handleSelectArticle} />
         </>
       ) : (
-        <ArticleDetail article={selectedArticle} onBack={() => setSelectedArticle(null)} />
+        <ArticleDetail 
+          articleId={selectedArticleId} 
+          article={selectedArticle} 
+          onBack={() => {
+            setSelectedArticleId(null);
+            setSelectedArticle(null);
+          }} 
+        />
       )}
     </div>
   );

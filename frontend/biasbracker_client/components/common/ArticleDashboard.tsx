@@ -4,7 +4,7 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import { useGetUserArticlesQuery } from "@/redux/features/articleApiSlice";
 
-const ArticleDashboard = ({ onSelectArticle }: { onSelectArticle: (article: any) => void }) => {
+const ArticleDashboard = ({ onSelectArticle }: { onSelectArticle: (articleId: number, article: any) => void }) => {
   const { data: articles = [], isLoading, isError, refetch } = useGetUserArticlesQuery();
   const [hovered, setHovered] = useState<number | null>(null);
 
@@ -17,31 +17,20 @@ const ArticleDashboard = ({ onSelectArticle }: { onSelectArticle: (article: any)
       {!isLoading && articles.length === 0 && !isError && <p className="text-gray-500 text-center">No articles found. Generate one above.</p>}
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-6">
-        {articles.map((article: any) => {
-          let content;
-          try {
-            content = JSON.parse(article.content);
-          } catch (e) {
-            content = null;
-          }
-
-          return (
-            <motion.div
-              key={article.id}
-              className="border p-5 rounded-lg shadow-md bg-white hover:shadow-lg transition-all cursor-pointer"
-              whileHover={{ scale: 1.02 }}
-              onMouseEnter={() => setHovered(article.id)}
-              onMouseLeave={() => setHovered(null)}
-              onClick={() => onSelectArticle(content)}
-            >
-              <h3 className="text-xl font-semibold text-gray-900">{content?.title || "Untitled Article"}</h3>
-              <p className="text-gray-600 mt-2">{content?.introduction || "No introduction available."}</p>
-              <p className="text-sm text-gray-500 mt-3">
-                {hovered === article.id ? "Click to Read More" : ""}
-              </p>
-            </motion.div>
-          );
-        })}
+        {articles.map((article: any) => (
+          <motion.div
+            key={article.id}
+            className="border p-5 rounded-lg shadow-md bg-white hover:shadow-lg transition-all cursor-pointer"
+            whileHover={{ scale: 1.02 }}
+            onMouseEnter={() => setHovered(article.id)}
+            onMouseLeave={() => setHovered(null)}
+            onClick={() => onSelectArticle(article.id, article)} // Ensure correct article ID is passed
+          >
+            <h3 className="text-xl font-semibold text-gray-900">{article?.title || "No Title Available"}</h3>
+            <p className="text-gray-600 mt-2">{article?.content?.introduction || "No introduction available."}</p>
+            <p className="text-sm text-gray-500 mt-3">{hovered === article.id ? "Click to Read More" : ""}</p>
+          </motion.div>
+        ))}
       </div>
 
       {/* Refresh Button */}

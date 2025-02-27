@@ -26,8 +26,8 @@ class Article(models.Model):
         related_name="articles"
     )
     title = models.CharField(max_length=255)
-    summary = models.TextField(blank=True, null=True)  # ✅ Store a short summary of the article
-    content = models.JSONField()  # ✅ Stores structured JSON instead of plain text
+    summary = models.TextField(blank=True, null=True)
+    content = models.JSONField()
     perspective = models.CharField(
         max_length=20,
         choices=PerspectiveChoices.choices,
@@ -40,23 +40,32 @@ class Article(models.Model):
         default=BiasChoices.CONFIRMATION,
         db_index=True
     )
-    word_count = models.IntegerField(default=0)  # ✅ Store word count for analytics
+    word_count = models.IntegerField(default=0)
     created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)  # ✅ Track last modification time
+    updated_at = models.DateTimeField(auto_now=True)
 
     def save(self, *args, **kwargs):
-        """ Automatically update the word count before saving. """
+        """Automatically update word count before saving."""
         if self.content:
-            text_content = json.dumps(self.content)  # Convert JSON to string
-            self.word_count = len(text_content.split())  # Count words
+            text_content = json.dumps(self.content)
+            self.word_count = len(text_content.split())
         super().save(*args, **kwargs)
-
-    def get_preview(self, char_limit=200):
-        """ Generate a short preview of the article for quick display. """
-        if not self.content:
-            return "No content available."
-        first_section = self.content.get("sections", [{}])[0].get("content", "")
-        return (first_section[:char_limit] + "...") if len(first_section) > char_limit else first_section
 
     def __str__(self):
         return f"{self.title} ({self.perspective} - {self.cognitive_bias})"
+
+class AlternativePerspective(models.Model):
+    article = models.OneToOneField(Article, on_delete=models.CASCADE, related_name="alternative_perspective")
+    content = models.JSONField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Alternative Perspective for {self.article.title}"
+
+class Quiz(models.Model):
+    article = models.OneToOneField(Article, on_delete=models.CASCADE, related_name="quiz")
+    questions = models.JSONField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Quiz for {self.article.title}"
