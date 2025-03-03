@@ -28,7 +28,7 @@ const AlternativePerspectiveModal = ({
         <h2 className="text-2xl font-bold text-gray-900">{title || "Alternative Perspective"}</h2>
 
         {/* Introduction */}
-        <p className="mt-4 text-gray-700">{introduction?.paragraph1 || "No introduction available."}</p>
+        <p className="mt-4 text-gray-700">{introduction || "No introduction available."}</p>
 
         {/* Sections */}
         <div className="mt-4 space-y-4">

@@ -26,7 +26,8 @@ class Article(models.Model):
         related_name="articles"
     )
     title = models.CharField(max_length=255)
-    summary = models.TextField(blank=True, null=True)
+    topic = models.CharField(max_length=255,default="General")
+    # summary = models.TextField(blank=True, null=True)
     content = models.JSONField()
     perspective = models.CharField(
         max_length=20,

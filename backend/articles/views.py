@@ -54,10 +54,12 @@ class GenerateArticleAPIView(APIView):
 
         prompt = (
             f"You are a professional AI writer. Generate an engaging, well-structured article in valid JSON format with no extra text. "
-            f"The JSON should include exactly these keys: 'title', 'summary', 'introduction', 'sections' (two sections having a list of objects with 'heading' and 'content'), "
+            f"The JSON should include exactly these keys: 'title', 'introduction', 'sections' (sections key contains two sections a list of objects with 'heading' and 'content'), "
             f"'conclusion', and 'word_count' (an integer representing the approximate word count). "
-            f"Topic: {topic}. Perspective: {perspective}. Cognitive Bias: {cognitive_bias}. "
-            "Use this cognitive bias and perspective to influence the article but remain factually accurate."
+           f"Topic: {topic}. The article should primarily focus on {topic}, providing in-depth insights, examples, and analysis. "
+           f"Perspective: {perspective} (use this perspective to subtly frame the discussion, but do not make it the main subject). "
+           f"Cognitive Bias: {cognitive_bias} (allow this bias to subtly shape the narrative, but do not explicitly discuss the bias itself). "
+            "Ensure the article is factually accurate, logically structured, and compelling."
         )
 
         response = requests.post(API_URL, headers=HEADERS, json={"inputs": prompt}, timeout=180)
@@ -74,6 +76,7 @@ class GenerateArticleAPIView(APIView):
             content=parsed_content,
             perspective=perspective,
             cognitive_bias=cognitive_bias,
+            topic=topic
         )
 
         return Response(ArticleSerializer(article).data, status=201)
@@ -90,9 +93,9 @@ class GenerateAlternativePerspectiveAPIView(APIView):
             return Response({"error": "Article not found"}, status=404)
 
         alternative_perspective_prompt = (
-            f"Generate an alternative perspective for the article titled '{article.title}', "
+            f"Generate an alternative perspective for the article '{article}', "
             "challenging or expanding on its key arguments while remaining factually accurate. "
-             f"The JSON should include exactly these keys: 'title', 'summary', 'introduction', 'sections' (two sections having a list of objects with 'heading' and 'content'), "
+             f"The JSON should include exactly these keys: 'title', 'introduction', 'sections' (two sections having a list of objects with 'heading' and 'content'), "
             f"'conclusion',"
             "Ensure the response is in JSON format."
         )
@@ -123,8 +126,8 @@ class GenerateQuizAPIView(APIView):
 
         quiz_prompt = (
             f"Generate a multiple-choice quiz with answers based on the article '{article}' "
-            f"and its alternative perspective '{alternative_perspective}'. Include 10 questions covering both viewpoints. "
-            f"The JSON should include exactly these keys: 'question', 'options', and 'answer'. "
+            f"and its alternative perspective '{alternative_perspective.content}'. Include 10 questions covering both viewpoints. "
+            f"The JSON should include exactly these keys: 'question', 'options' (array of options), and 'answer'. "
             "Ensure the response is in JSON format."
         )
 

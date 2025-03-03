@@ -2,6 +2,8 @@
 backend/.env.local
 backend/**/__pycache__
 frontend/**/.env.local
+backend/venv310
+backend/venv
 # Logs
 logs
 *.log

@@ -10,6 +10,7 @@ import {
 } from "@/redux/features/articleApiSlice";
 import AlternativePerspectiveModal from "@/components/common/AlternativePerspectiveModal";
 import QuizModal from "@/components/common/QuizModal";
+import EyeTrackingControl from "./EyeTrackingControl";
 
 const ArticleDetail = ({ articleId, article, onBack }: { articleId: number | null; article: any; onBack: () => void }) => {
   const [isAltPerspectiveOpen, setAltPerspectiveOpen] = useState(false);
@@ -140,6 +141,7 @@ const ArticleDetail = ({ articleId, article, onBack }: { articleId: number | nul
         onClose={() => setQuizOpen(false)} 
         quiz={quiz} 
       />
+      {/* <EyeTrackingControl/> */}
     </motion.div>
   );
 };

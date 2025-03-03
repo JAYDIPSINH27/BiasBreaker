@@ -32,10 +32,20 @@ const TopicCloud = ({ onArticleGenerated }: { onArticleGenerated: () => void }) 
     }
   };
 
+  // const generateArticles = async () => {
+  //   await Promise.all(selectedTopics.map(topic => generateArticle(topic)));
+  //   onArticleGenerated();
+  //   setSelectedTopics([]);
+  // };
+
   const generateArticles = async () => {
-    await Promise.all(selectedTopics.map(topic => generateArticle(topic)));
-    onArticleGenerated();
-    setSelectedTopics([]);
+    if (selectedTopics.length === 0) return; // Prevent API call if no topics are selected
+  
+    const combinedTopics = selectedTopics.join(", "); // Merge topics into a single string
+  
+    await generateArticle(combinedTopics); // Single API call with all topics combined
+    onArticleGenerated(); // Refresh the list after generation
+    setSelectedTopics([]); // Reset topic selection
   };
 
   return (
