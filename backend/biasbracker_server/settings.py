@@ -54,6 +54,7 @@ INSTALLED_APPS = [
     'djoser',
     'users',
     'articles',
+    'userpoints',
     'channels',  
     'eye_tracking',  
     'corsheaders',

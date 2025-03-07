@@ -52,9 +52,12 @@ const Navbar = () => {
         <div className="hidden md:flex items-center space-x-6">
           {currentUser ? (
             <>
+            <Link
+             href="/profile">
               <span className="text-gray-800 font-medium">
                 Welcome, {currentUser.first_name}
               </span>
+              </Link>
               <button
                 onClick={handleLogout}
                 className="px-4 py-2 text-gray-700 hover:text-red-600 transition duration-200"

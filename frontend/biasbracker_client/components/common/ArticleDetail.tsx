@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { 
   useGetAlternativePerspectiveQuery, 
@@ -8,14 +8,16 @@ import {
   useGetQuizQuery, 
   useGenerateQuizMutation 
 } from "@/redux/features/articleApiSlice";
+import { useAddUserPointsMutation } from "@/redux/features/userPointsApiSlice";
+import { toast } from "react-hot-toast";
 import AlternativePerspectiveModal from "@/components/common/AlternativePerspectiveModal";
 import QuizModal from "@/components/common/QuizModal";
-import EyeTrackingControl from "./EyeTrackingControl";
 
 const ArticleDetail = ({ articleId, article, onBack }: { articleId: number | null; article: any; onBack: () => void }) => {
   const [isAltPerspectiveOpen, setAltPerspectiveOpen] = useState(false);
   const [isQuizUnlocked, setQuizUnlocked] = useState(false);
   const [isQuizOpen, setQuizOpen] = useState(false);
+  const [addUserPoints] = useAddUserPointsMutation();
 
   // Fetch Alternative Perspective (Skip until generated)
   const { data: alternativePerspective, isLoading: isAltLoading, refetch: refetchAltPerspective } = useGetAlternativePerspectiveQuery(articleId, {
@@ -31,21 +33,51 @@ const ArticleDetail = ({ articleId, article, onBack }: { articleId: number | nul
   const [generateAltPerspective, { isLoading: isGeneratingAlt }] = useGenerateAlternativePerspectiveMutation();
   const [generateQuiz, { isLoading: isGeneratingQuiz }] = useGenerateQuizMutation();
 
-  // Generate & Unlock Alternative Perspective
+  useEffect(() => {
+    if (article && articleId) {
+      const viewedArticles = JSON.parse(localStorage.getItem("viewedArticles") || "[]");
+
+      if (!viewedArticles.includes(articleId)) {
+        addUserPoints("article_view")
+          .unwrap()
+          .then((res) => {
+            toast.success("+5 Points for reading!");
+            if (res.new_badges.length > 0) {
+              toast.success(`🏅 New Badge Earned: ${res.new_badges.join(", ")}`);
+            }
+          })
+          .catch(() => toast.error("Failed to update points."));
+
+        // Mark this article as viewed
+        localStorage.setItem("viewedArticles", JSON.stringify([...viewedArticles, articleId]));
+      }
+    }
+  }, [article, articleId]);
+
+
   const handleOpenAltPerspective = async () => {
     if (!alternativePerspective && !isAltLoading) {
       await generateAltPerspective(articleId);
       await refetchAltPerspective();
     }
+    
+    addUserPoints("alternative_click")
+      .unwrap()
+      .then((res) => {
+        toast.success("+10 Points for exploring different views!");
+        if (res.new_badges.length > 0) {
+          toast.success(`🏅 New Badge Earned: ${res.new_badges.join(", ")}`);
+        }
+      })
+      .catch(() => toast.error("Failed to update points."));
+
     setAltPerspectiveOpen(true);
   };
 
-  // Unlock Quiz after reading Alternative Perspective
   const handleCompleteAlternativePerspective = () => {
     setQuizUnlocked(true);
   };
 
-  // Generate & Open Quiz
   const handleOpenQuiz = async () => {
     if (!quiz && !isQuizLoading) {
       await generateQuiz(articleId);
@@ -141,7 +173,6 @@ const ArticleDetail = ({ articleId, article, onBack }: { articleId: number | nul
         onClose={() => setQuizOpen(false)} 
         quiz={quiz} 
       />
-      {/* <EyeTrackingControl/> */}
     </motion.div>
   );
 };

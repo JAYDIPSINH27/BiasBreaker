@@ -7,4 +7,5 @@ urlpatterns = [
     path('api/', include('users.urls')),
     path("api/articles/", include("articles.urls")),
     path("api/eye-track/", include("eye_tracking.urls")),
+    path("api/", include("userpoints.urls")),
 ]

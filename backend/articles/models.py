@@ -16,7 +16,7 @@ class Article(models.Model):
         AVAILABILITY = "Availability Bias", "Availability Bias"
         FRAMING = "Framing Effect", "Framing Effect"
         OVERCONFIDENCE = "Overconfidence Bias", "Overconfidence Bias"
-        NEGATIVITY = "Negativity Bias", "Negativity Bias"
+        # NEGATIVITY = "Negativity Bias", "Negativity Bias"
         BANDWAGON = "Bandwagon Effect", "Bandwagon Effect"
         SUNK_COST = "Sunk Cost Fallacy", "Sunk Cost Fallacy"
 

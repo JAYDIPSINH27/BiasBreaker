@@ -23,7 +23,7 @@ const LoginForm = () => {
   const [login, { isLoading }] = useLoginMutation();
   const router = useRouter();
 
-  const [formData, setFormData] = useState<LoginFormState>({ email: "", password: "" });
+  const [formData, setFormData] = useState<LoginFormState>({ email: "jpsinh@yopmail.com", password: "Abcd@7635" });
   const [touched, setTouched] = useState<Record<keyof LoginFormState, boolean>>({ email: false, password: false });
   const [errors, setErrors] = useState<Partial<LoginFormState>>({});
 
