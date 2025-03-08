@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, ChangeEvent, FormEvent, useEffect } from "react";
-import { useLoginMutation } from "@/redux/features/authApiSlice";
+import { useLoginMutation, useRetrieveUserQuery } from "@/redux/features/authApiSlice";
 import toast from "react-hot-toast";
 import { useRouter } from "next/navigation";
 import InputField from "../common/InputField";
@@ -20,12 +20,35 @@ interface LoginFormState {
 }
 
 const LoginForm = () => {
-  const [login, { isLoading }] = useLoginMutation();
   const router = useRouter();
 
-  const [formData, setFormData] = useState<LoginFormState>({ email: "jpsinh@yopmail.com", password: "Abcd@7635" });
-  const [touched, setTouched] = useState<Record<keyof LoginFormState, boolean>>({ email: false, password: false });
+  // 1) Check if user is already logged in
+  const {
+    data: user,
+    isLoading: isUserLoading, // whether user retrieval is in progress
+    isSuccess: isUserSuccess, // whether the query succeeded
+    isError: isUserError,
+  } = useRetrieveUserQuery();
+
+  const [login, { isLoading }] = useLoginMutation();
+  const [formData, setFormData] = useState<LoginFormState>({
+    email: "jpsinh@yopmail.com",
+    password: "Abcd@7635",
+  });
+  const [touched, setTouched] = useState<Record<keyof LoginFormState, boolean>>({
+    email: false,
+    password: false,
+  });
   const [errors, setErrors] = useState<Partial<LoginFormState>>({});
+
+  // 2) If user is already authenticated, redirect to dashboard
+  useEffect(() => {
+    if (!isUserLoading && isUserSuccess && user) {
+      router.push("/dashboard");
+    }
+    // If there's an error, the user is definitely not logged in
+    // so we just let them see the login page.
+  }, [isUserLoading, isUserSuccess, user, router]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -56,6 +79,16 @@ const LoginForm = () => {
       .catch(() => toast.error("Invalid credentials"));
   };
 
+  // 3) While user info is loading (optional), you can show a spinner:
+  if (isUserLoading) {
+    return (
+      <div className="min-h-screen flex flex-col justify-center items-center bg-gray-100">
+        <Spinner />
+      </div>
+    );
+  }
+
+  // 4) If not logged in, render the login form
   return (
     <div className="min-h-screen flex flex-col justify-center items-center bg-gray-100">
       <motion.div
@@ -69,14 +102,37 @@ const LoginForm = () => {
           Login to Your Account
         </h2>
         <form className="space-y-4 mt-6" onSubmit={onSubmit}>
-          <InputField id="email" label="Email" name="email" type="email" value={formData.email} error={errors.email} touched={touched.email} onChange={onChange} />
-          <PasswordField id="password" label="Password" name="password" value={formData.password} error={errors.password} touched={touched.password} onChange={onChange} />
-          <motion.button type="submit" className="btn-primary" whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+          <InputField
+            id="email"
+            label="Email"
+            name="email"
+            type="email"
+            value={formData.email}
+            error={errors.email}
+            touched={touched.email}
+            onChange={onChange}
+          />
+          <PasswordField
+            id="password"
+            label="Password"
+            name="password"
+            value={formData.password}
+            error={errors.password}
+            touched={touched.password}
+            onChange={onChange}
+          />
+          <motion.button
+            type="submit"
+            className="btn-primary"
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+          >
             {isLoading ? <Spinner /> : "Login"}
           </motion.button>
 
           {/* Reusable Google Login Button */}
           <GoogleLoginButton text="Continue with Google" />
+
           <p className="text-center text-sm text-gray-500 mt-4">
             Do not have any account?{" "}
             <Link href="/auth/register" className="text-indigo-600 hover:underline">

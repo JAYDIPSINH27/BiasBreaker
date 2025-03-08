@@ -44,9 +44,15 @@ const Navbar = () => {
     <nav className="w-full bg-white shadow-md fixed top-0 left-0 z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex justify-between items-center h-16">
         {/* Logo */}
-        <Link href="/" className="text-lg font-bold text-gray-900">
-          BiasBreaker
-        </Link>
+        {currentUser ? (
+  <Link href="/dashboard" className="text-lg font-bold text-gray-900">
+    BiasBreaker
+  </Link>
+) : (
+  <Link href="/" className="text-lg font-bold text-gray-900">
+    BiasBreaker
+  </Link>
+)}
 
         {/* Navigation Links */}
         <div className="hidden md:flex items-center space-x-6">

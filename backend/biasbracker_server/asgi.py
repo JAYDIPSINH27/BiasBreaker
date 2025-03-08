@@ -1,16 +1,17 @@
-"""
-ASGI config for biasbracker_server project.
-
-It exposes the ASGI callable as a module-level variable named ``application``.
-
-For more information on this file, see
-https://docs.djangoproject.com/en/5.1/howto/deployment/asgi/
-"""
-
 import os
-
 from django.core.asgi import get_asgi_application
+from channels.routing import ProtocolTypeRouter, URLRouter
+from django.urls import path
+from eye_tracking.consumers import EyeTrackingConsumer
 
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'biasbracker_server.settings')
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "biasbracker_server.settings")
+django_asgi_app = get_asgi_application()
 
-application = get_asgi_application()
+websocket_urlpatterns = [
+    path("ws/eye-tracking/", EyeTrackingConsumer.as_asgi()),
+]
+
+application = ProtocolTypeRouter({
+    "http": django_asgi_app,
+    "websocket": URLRouter(websocket_urlpatterns),
+})

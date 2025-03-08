@@ -6,10 +6,10 @@ export const pointsApiSlice = apiSlice.injectEndpoints({
       query: () => "userpoints/",
     }),
     addUserPoints: builder.mutation({
-      query: (action) => ({
+      query: ({ action, article_id }) => ({
         url: "userpoints/add/",
         method: "POST",
-        body: { action },
+        body: { action, article_id },
       }),
     }),
   }),

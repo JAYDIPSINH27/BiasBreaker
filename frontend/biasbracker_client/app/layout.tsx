@@ -5,6 +5,7 @@ import "@/styles/globals.css";
 import { Navbar, Footer } from "@/components/common";
 import Provider from "@/redux/provider";
 import { Setup } from "@/components/utils";
+import EyeTrackingSocketListener from "@/components/common/EyeTrackingSocketListener";
 
 
 const geistSans = Geist({
@@ -35,6 +36,9 @@ export default function RootLayout({
         <Provider>
           <Setup />
           {/* <ProtectedRouter> */}
+
+          {/* EyeTracking WebSocket Listener */}
+          <EyeTrackingSocketListener />
           <Navbar />
           <div>{children}</div>
           <Footer />

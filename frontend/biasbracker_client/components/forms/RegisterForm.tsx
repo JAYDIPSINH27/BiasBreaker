@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, ChangeEvent, FormEvent, useEffect } from "react";
-import { useRegisterMutation } from "@/redux/features/authApiSlice";
+import { useRegisterMutation, useRetrieveUserQuery } from "@/redux/features/authApiSlice";
 import toast from "react-hot-toast";
 import { useRouter } from "next/navigation";
 import InputField from "../common/InputField";
@@ -23,8 +23,17 @@ interface RegisterFormState {
 }
 
 const RegisterForm = () => {
-  const [register, { isLoading }] = useRegisterMutation();
   const router = useRouter();
+
+  // 1) Check if user is already logged in
+  const {
+    data: user,
+    isLoading: isUserLoading,
+    isSuccess: isUserSuccess,
+    isError: isUserError, // not really used here, but handy if you want to handle errors
+  } = useRetrieveUserQuery();
+
+  const [register, { isLoading }] = useRegisterMutation();
 
   const [formData, setFormData] = useState<RegisterFormState>({
     first_name: "",
@@ -44,6 +53,14 @@ const RegisterForm = () => {
 
   const [errors, setErrors] = useState<Partial<RegisterFormState>>({});
 
+  // 2) If user is already authenticated, redirect to dashboard
+  useEffect(() => {
+    if (!isUserLoading && isUserSuccess && user) {
+      router.push("/dashboard");
+    }
+  }, [isUserLoading, isUserSuccess, user, router]);
+
+  // Debounce form validation
   useEffect(() => {
     const timer = setTimeout(() => {
       setErrors(validateForm(formData));
@@ -73,6 +90,16 @@ const RegisterForm = () => {
       .catch(() => toast.error("Failed to register account"));
   };
 
+  // 3) If user info is still loading, optionally display a spinner:
+  if (isUserLoading) {
+    return (
+      <div className="min-h-screen flex flex-col justify-center items-center bg-gray-100">
+        <Spinner />
+      </div>
+    );
+  }
+
+  // 4) If not logged in, render the registration form
   return (
     <div className="min-h-screen flex flex-col justify-center items-center bg-gray-100 px-4 sm:px-6 pt-24 pb-24">
       <motion.div
@@ -85,7 +112,7 @@ const RegisterForm = () => {
         <div className="flex justify-center">
           <Image src={Logo} alt="BiasBreaker Logo" className="h-20 w-auto" />
         </div>
-        
+
         {/* Title */}
         <h2 className="text-center text-2xl font-bold text-gray-900 mt-5">
           Sign up for an account
@@ -94,24 +121,71 @@ const RegisterForm = () => {
         {/* Form */}
         <form className="space-y-5 mt-6" onSubmit={onSubmit}>
           <motion.div whileFocus={{ scale: 1.05 }}>
-            <InputField id="first_name" label="First Name" name="first_name" type="text" value={formData.first_name} error={errors.first_name} touched={touched.first_name} onChange={onChange} />
+            <InputField
+              id="first_name"
+              label="First Name"
+              name="first_name"
+              type="text"
+              value={formData.first_name}
+              error={errors.first_name}
+              touched={touched.first_name}
+              onChange={onChange}
+            />
           </motion.div>
+
           <motion.div whileFocus={{ scale: 1.05 }}>
-            <InputField id="last_name" label="Last Name" name="last_name" type="text" value={formData.last_name} error={errors.last_name} touched={touched.last_name} onChange={onChange} />
+            <InputField
+              id="last_name"
+              label="Last Name"
+              name="last_name"
+              type="text"
+              value={formData.last_name}
+              error={errors.last_name}
+              touched={touched.last_name}
+              onChange={onChange}
+            />
           </motion.div>
+
           <motion.div whileFocus={{ scale: 1.05 }}>
-            <InputField id="email" label="Email" name="email" type="email" value={formData.email} error={errors.email} touched={touched.email} onChange={onChange} />
+            <InputField
+              id="email"
+              label="Email"
+              name="email"
+              type="email"
+              value={formData.email}
+              error={errors.email}
+              touched={touched.email}
+              onChange={onChange}
+            />
           </motion.div>
+
           <motion.div whileFocus={{ scale: 1.05 }}>
-            <PasswordField id="password" label="Password" name="password" value={formData.password} error={errors.password} touched={touched.password} onChange={onChange} />
+            <PasswordField
+              id="password"
+              label="Password"
+              name="password"
+              value={formData.password}
+              error={errors.password}
+              touched={touched.password}
+              onChange={onChange}
+            />
           </motion.div>
+
           <motion.div whileFocus={{ scale: 1.05 }}>
-            <PasswordField id="re_password" label="Confirm Password" name="re_password" value={formData.re_password} error={errors.re_password} touched={touched.re_password} onChange={onChange} />
+            <PasswordField
+              id="re_password"
+              label="Confirm Password"
+              name="re_password"
+              value={formData.re_password}
+              error={errors.re_password}
+              touched={touched.re_password}
+              onChange={onChange}
+            />
           </motion.div>
 
           {/* Submit Button */}
-          <motion.button 
-            type="submit" 
+          <motion.button
+            type="submit"
             className="w-full bg-indigo-600 text-white py-3 rounded-md hover:bg-indigo-500 transition"
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}

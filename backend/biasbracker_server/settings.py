@@ -94,6 +94,14 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'biasbracker_server.wsgi.application'
 
+ASGI_APPLICATION = 'biasbracker_server.asgi.application'
+
+CHANNEL_LAYERS = {
+    'default': {
+        'BACKEND': 'channels.layers.InMemoryChannelLayer',
+    },
+}
+
 
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases

@@ -1,4 +1,5 @@
 from .models import UserPoints, UserActivity
+
 def assign_badge(user):
     """Assigns a badge based on points"""
     user_points = UserPoints.objects.get(user=user)
@@ -19,7 +20,7 @@ def assign_badge(user):
     user_points.save()
     return new_badges
 
-def add_user_points(user, action):
+def add_user_points(user, action, article_id=None):
     """Handles awarding points and badges based on user actions"""
     points_mapping = {
         "article_view": 5,
@@ -32,12 +33,16 @@ def add_user_points(user, action):
     if points == 0:
         return {"message": "Invalid action"}
 
+    # Check if user already performed this action for the same article
+    if article_id and UserActivity.objects.filter(user=user, article_id=article_id, action=action).exists():
+        return {"message": "Points already awarded for this action"}
+
     user_points, created = UserPoints.objects.get_or_create(user=user)
     user_points.total_points += points
     user_points.save()
 
     # Log user activity
-    UserActivity.objects.create(user=user, action=action, points_awarded=points)
+    UserActivity.objects.create(user=user, article_id=article_id, action=action, points_awarded=points)
 
     # Check if new badges should be assigned
     new_badges = assign_badge(user)

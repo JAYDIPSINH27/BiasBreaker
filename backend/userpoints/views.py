@@ -11,6 +11,7 @@ class GetUserPoints(APIView):
     def get(self, request):
         user_points, created = UserPoints.objects.get_or_create(user=request.user)
         return Response({
+            "success": True, 
             "total_points": user_points.total_points,
             "badges": user_points.badges,
         })
@@ -21,8 +22,10 @@ class AddUserPoints(APIView):
 
     def post(self, request):
         action = request.data.get("action")
+        article_id = request.data.get("article_id")
+
         if not action:
             return Response({"error": "Action is required"}, status=400)
 
-        result = add_user_points(request.user, action)
+        result = add_user_points(request.user, action, article_id)
         return Response(result)

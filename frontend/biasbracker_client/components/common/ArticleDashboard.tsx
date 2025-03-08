@@ -34,14 +34,14 @@ const ArticleDashboard = ({ onSelectArticle }: { onSelectArticle: (articleId: nu
       </div>
 
       {/* Refresh Button */}
-      <motion.button
+      {/* <motion.button
         onClick={refetch}
         className="mt-6 px-6 py-2 bg-blue-500 text-white rounded-lg shadow-md hover:bg-blue-600 transition-all"
         whileHover={{ scale: 1.1 }}
         whileTap={{ scale: 0.9 }}
       >
         Refresh Articles
-      </motion.button>
+      </motion.button> */}
     </motion.div>
   );
 };
