@@ -94,9 +94,9 @@ def gaze_data_callback(gaze_data):
 
     if gaze_data:
         # Parse gaze data if available
-        gaze_x = gaze_data.get('left_gaze_point_on_display_area', [None, None])[0]
-        gaze_y = gaze_data.get('left_gaze_point_on_display_area', [None, None])[1]
-        pupil_diameter = gaze_data.get('left_pupil_diameter')
+        gaze_x = gaze_data['left_gaze_point_on_display_area'][0] if 'left_gaze_point_on_display_area' in gaze_data else None
+        gaze_y = gaze_data['left_gaze_point_on_display_area'][1] if 'left_gaze_point_on_display_area' in gaze_data else None
+        pupil_diameter = gaze_data['left_pupil_diameter'] if 'left_pupil_diameter' in gaze_data else None
         
         print(f"Parsed Gaze Data: x={gaze_x}, y={gaze_y}, pupil_diameter={pupil_diameter}")
 
