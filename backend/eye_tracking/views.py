@@ -3,7 +3,8 @@ import tobii_research as tr
 import cv2
 import mediapipe as mp
 import threading
-import time  # For throttling alerts
+import time  # For tracking engagement
+import numpy as np  # For heatmap
 import random  # To choose different messages
 from django.utils.timezone import now
 from rest_framework.views import APIView
@@ -23,11 +24,16 @@ eyetracker = found_eyetrackers[0] if found_eyetrackers else None
 mp_face_mesh = mp.solutions.face_mesh
 face_mesh = mp_face_mesh.FaceMesh(refine_landmarks=True)
 
-# Global variables for throttling alerts in Tobii callback
+# Global Parameters
 LAST_ALERT_TIME = 0
 ALERT_COOLDOWN = 10  # seconds
+GAZE_HISTORY_SIZE = 10  # Sliding window size for gaze tracking
+FIXATION_THRESHOLD = 0.02  # Max movement allowed for fixation
+FIXATION_TIME = 0.3  # Minimum time for fixation (seconds)
+LOST_FOCUS_THRESHOLD = 3  # Time before alert triggers
+heatmap = np.zeros((1080, 1920), dtype=np.float32)  # Heatmap array
 
-# A list of alternative messages to prompt the user.
+# Random Alert Messages
 ALERT_MESSAGES = [
     "Not fully engaged? Check out an alternative perspective for fresh insights!",
     "Your attention seems to drift—why not try a quick quiz?",
@@ -35,21 +41,14 @@ ALERT_MESSAGES = [
 ]
 
 def choose_alert_message():
-    # Randomly choose one of the alert messages.
     return random.choice(ALERT_MESSAGES)
 
 class CheckTobiiAvailability(APIView):
-    """
-    Simple endpoint to check if Tobii is detected on the system.
-    """
     def get(self, request):
         found_eyetrackers = tr.find_all_eyetrackers()
-        if found_eyetrackers:
-            return Response({"tobi_available": True}, status=status.HTTP_200_OK)
-        return Response({"tobi_available": False}, status=status.HTTP_200_OK)
+        return Response({"tobi_available": bool(found_eyetrackers)}, status=status.HTTP_200_OK)
 
 class StartEyeTrackingSession(APIView):
-    """ Start an eye tracking session (Tobii or Webcam) """
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
@@ -60,7 +59,6 @@ class StartEyeTrackingSession(APIView):
         return Response(EyeTrackingSessionSerializer(session).data, status=status.HTTP_201_CREATED)
 
 class StopEyeTrackingSession(APIView):
-    """ Stop an active eye tracking session """
     permission_classes = [IsAuthenticated]
 
     def post(self, request, session_id):
@@ -70,7 +68,6 @@ class StopEyeTrackingSession(APIView):
         return Response({"message": "Session ended successfully"}, status=status.HTTP_200_OK)
 
 class GetEyeTrackingSessions(APIView):
-    """ Retrieve all eye tracking sessions for a user """
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
@@ -78,7 +75,6 @@ class GetEyeTrackingSessions(APIView):
         return Response(EyeTrackingSessionSerializer(sessions, many=True).data)
 
 class GetGazeData(APIView):
-    """ Retrieve gaze data for a session """
     permission_classes = [IsAuthenticated]
 
     def get(self, request, session_id):
@@ -86,79 +82,86 @@ class GetGazeData(APIView):
         gaze_data = GazeData.objects.filter(session=session).order_by('-timestamp')
         return Response(GazeDataSerializer(gaze_data, many=True).data)
 
-# Tobii Eye Tracker Callback with alert throttling and multiple messages
+# Gaze Data Processing with Fixation & Heatmap Tracking
+gaze_history = []
+last_reading_timestamp = time.time()
+
+def update_heatmap(gaze_x, gaze_y):
+    """Updates heatmap with new gaze coordinates."""
+    global heatmap
+    if 0 <= gaze_x < 1920 and 0 <= gaze_y < 1080:
+        heatmap[int(gaze_y), int(gaze_x)] += 1
+
+def detect_fixation(gaze_x, gaze_y):
+    """Detects if the user is fixating within a small area."""
+    global gaze_history, last_reading_timestamp
+
+    gaze_history.append((gaze_x, gaze_y, time.time()))
+    if len(gaze_history) > GAZE_HISTORY_SIZE:
+        prev_x, prev_y, _ = gaze_history[-GAZE_HISTORY_SIZE]
+        distance = ((gaze_x - prev_x) ** 2 + (gaze_y - prev_y) ** 2) ** 0.5
+
+        if distance < FIXATION_THRESHOLD:
+            last_reading_timestamp = time.time()
+            return True
+    return False
+
 def gaze_data_callback(gaze_data):
-    """Handles incoming Tobii gaze data and sends contextual alerts if the user is not looking."""
-    global LAST_ALERT_TIME
-    print("Received Gaze Data:", gaze_data)  # Log the entire gaze data
+    """Handles Tobii gaze data and detects attention loss."""
+    global LAST_ALERT_TIME, last_reading_timestamp
 
-    if gaze_data:
-        # Parse gaze data if available
-        gaze_x = gaze_data['left_gaze_point_on_display_area'][0] if 'left_gaze_point_on_display_area' in gaze_data else None
-        gaze_y = gaze_data['left_gaze_point_on_display_area'][1] if 'left_gaze_point_on_display_area' in gaze_data else None
-        pupil_diameter = gaze_data['left_pupil_diameter'] if 'left_pupil_diameter' in gaze_data else None
+    if gaze_data and 'left_gaze_point_on_display_area' in gaze_data:
+        gaze_x, gaze_y = gaze_data['left_gaze_point_on_display_area']
         
-        print(f"Parsed Gaze Data: x={gaze_x}, y={gaze_y}, pupil_diameter={pupil_diameter}")
+        # Update heatmap and fixation tracking
+        update_heatmap(gaze_x, gaze_y)
+        is_fixating = detect_fixation(gaze_x, gaze_y)
 
-        if gaze_x is not None and gaze_y is not None and pupil_diameter is not None:
-            try:
-                session = EyeTrackingSession.objects.latest('start_time')
-                GazeData.objects.create(
-                    session=session,
-                    gaze_x=gaze_x,
-                    gaze_y=gaze_y,
-                    pupil_diameter=pupil_diameter
-                )
-                print(f"Gaze data saved: x={gaze_x}, y={gaze_y}, pupil_diameter={pupil_diameter}")
-            except Exception as e:
-                print(f"Error saving gaze data: {e}")
-        else:
-            print("Invalid gaze data received: missing x, y, or pupil_diameter.")
-    else:
-        print("No gaze data received.")
-
-    # Send a contextual alert only if gaze data is invalid (indicating user isn't looking)
-    if gaze_data is None or gaze_data.get('left_gaze_point_on_display_area') is None:
-        current_time = time.time()
-        if current_time - LAST_ALERT_TIME > ALERT_COOLDOWN:
-            channel_layer = get_channel_layer()
-            alert_message = choose_alert_message()
-            async_to_sync(channel_layer.group_send)(
-                "eye_tracking", {"type": "eye.alert", "message": alert_message}
+        # Save gaze data
+        try:
+            session = EyeTrackingSession.objects.latest('start_time')
+            GazeData.objects.create(
+                session=session,
+                gaze_x=gaze_x,
+                gaze_y=gaze_y,
+                pupil_diameter=gaze_data.get('left_pupil_diameter', 0.0)
             )
-            LAST_ALERT_TIME = current_time
+        except Exception as e:
+            print(f"Error saving gaze data: {e}")
+
+        # Trigger alert if attention is lost
+        if time.time() - last_reading_timestamp > LOST_FOCUS_THRESHOLD:
+            if time.time() - LAST_ALERT_TIME > ALERT_COOLDOWN:
+                channel_layer = get_channel_layer()
+                async_to_sync(channel_layer.group_send)(
+                    "eye_tracking", {"type": "eye.alert", "message": choose_alert_message()}
+                )
+                LAST_ALERT_TIME = time.time()
 
 class StartGazeTracking(APIView):
-    """ Start gaze tracking using Tobii (if available) or webcam """
     permission_classes = [IsAuthenticated]
 
     def post(self, request, session_id):
         session = get_object_or_404(EyeTrackingSession, session_id=session_id)
         if eyetracker:
             eyetracker.subscribe_to(tr.EYETRACKER_GAZE_DATA, gaze_data_callback, as_dictionary=True)
-            print("Tobii gaze tracking started")
             return Response({"message": "Tobii gaze tracking started"}, status=status.HTTP_200_OK)
         else:
-            # Start webcam tracking in a separate thread
             threading.Thread(target=webcam_gaze_tracking, args=(session,)).start()
-            print("Webcam gaze tracking started")
             return Response({"message": "Webcam gaze tracking started"}, status=status.HTTP_200_OK)
 
 class StopGazeTracking(APIView):
-    """ Stop gaze tracking (Tobii or webcam) """
     permission_classes = [IsAuthenticated]
 
     def post(self, request, session_id):
         if eyetracker:
             eyetracker.unsubscribe_from(tr.EYETRACKER_GAZE_DATA, gaze_data_callback)
-            print("Tobii gaze tracking stopped")
-        # For webcam tracking, a stop signal could be implemented if needed.
         return Response({"message": "Gaze tracking stopped"}, status=status.HTTP_200_OK)
 
 def webcam_gaze_tracking(session):
-    """Webcam-based gaze tracking using Mediapipe with single alert logic and additional messages."""
+    """Webcam-based gaze tracking using Mediapipe FaceMesh."""
     cap = cv2.VideoCapture(0)
-    alert_sent = False  # Local flag to send alert only once while no face is detected
+    alert_sent = False
 
     while cap.isOpened():
         ret, frame = cap.read()
@@ -169,30 +172,20 @@ def webcam_gaze_tracking(session):
         results = face_mesh.process(rgb_frame)
 
         if results.multi_face_landmarks:
-            # Reset alert flag when face is detected
             alert_sent = False
             for face_landmarks in results.multi_face_landmarks:
-                nose_tip = face_landmarks.landmark[1]  # Nose tip landmark
-                gaze_x, gaze_y = nose_tip.x, nose_tip.y
+                nose_tip = face_landmarks.landmark[1]
+                gaze_x, gaze_y = nose_tip.x * 1920, nose_tip.y * 1080
 
-                print(f"Webcam Gaze Data: x={gaze_x}, y={gaze_y}")
                 try:
-                    GazeData.objects.create(
-                        session=session,
-                        gaze_x=gaze_x,
-                        gaze_y=gaze_y,
-                        pupil_diameter=0.0
-                    )
+                    GazeData.objects.create(session=session, gaze_x=gaze_x, gaze_y=gaze_y, pupil_diameter=0.0)
                 except Exception as e:
                     print(f"Error saving webcam gaze data: {e}")
         else:
-            # No face detected: send an alert only once.
             if not alert_sent:
-                print("No face detected, sending alert for looking away.")
                 channel_layer = get_channel_layer()
-                alert_message = choose_alert_message()
                 async_to_sync(channel_layer.group_send)(
-                    "eye_tracking", {"type": "eye.alert", "message": alert_message}
+                    "eye_tracking", {"type": "eye.alert", "message": choose_alert_message()}
                 )
                 alert_sent = True
 
