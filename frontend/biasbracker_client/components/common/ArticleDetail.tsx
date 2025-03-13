@@ -330,11 +330,18 @@ const LiveGazeOverlay = ({
   const { width, height } = useWindowSize();
   if (!gaze) return null;
 
-  // Calculate scaling factors from raw resolution (1920x1080) to current window size
-  const scaleX = width / 1920;
-  const scaleY = height / 1080;
-  const left = gaze.x * scaleX;
-  const top = gaze.y * scaleY;
+  let left, top;
+  // If the values are normalized (<= 1), assume they're in [0, 1] range.
+  if (gaze.x <= 1 && gaze.y <= 1) {
+    left = gaze.x * width;
+    top = gaze.y * height;
+  } else {
+    // Otherwise, assume they are based on a 1920x1080 resolution.
+    const scaleX = width / 1920;
+    const scaleY = height / 1080;
+    left = gaze.x * scaleX;
+    top = gaze.y * scaleY;
+  }
 
   return (
     <div
@@ -359,6 +366,7 @@ const LiveGazeOverlay = ({
     </div>
   );
 };
+
 
 /* --------------------- Main Component --------------------- */
 
