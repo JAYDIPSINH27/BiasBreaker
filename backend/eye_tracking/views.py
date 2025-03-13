@@ -128,11 +128,17 @@ def gaze_data_callback(gaze_data):
             )
         except Exception as e:
             print(f"Error saving gaze data: {e}")
+        
+        # NEW: Send real-time gaze coordinates to frontend
+        channel_layer = get_channel_layer()
+        async_to_sync(channel_layer.group_send)(
+            "eye_tracking",
+            {"type": "eye.data", "payload": {"gaze_x": gaze_x, "gaze_y": gaze_y}}
+        )
 
         # Trigger alert if attention is lost
         if time.time() - last_reading_timestamp > LOST_FOCUS_THRESHOLD:
             if time.time() - LAST_ALERT_TIME > ALERT_COOLDOWN:
-                channel_layer = get_channel_layer()
                 async_to_sync(channel_layer.group_send)(
                     "eye_tracking", {"type": "eye.alert", "message": choose_alert_message()}
                 )
@@ -159,11 +165,30 @@ class StopGazeTracking(APIView):
         return Response({"message": "Gaze tracking stopped"}, status=status.HTTP_200_OK)
 
 def webcam_gaze_tracking(session):
-    """Webcam-based gaze tracking using Mediapipe FaceMesh."""
+    """Webcam-based gaze tracking using Mediapipe FaceMesh with live gaze data updates (headless version)."""
     cap = cv2.VideoCapture(0)
-    alert_sent = False
+    # Optionally, set a fixed resolution:
+    # cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1920)
+    # cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 1080)
+
+    channel_layer = get_channel_layer()  # Get channel layer for sending messages
+
+    ALERT_COOLDOWN = 10  # seconds
+    last_alert_time = 0
+
+    # Choose the landmark index for the nose tip.
+    nose_index = 1
+
+    # Get the actual frame resolution
+    frame_width = cap.get(cv2.CAP_PROP_FRAME_WIDTH)
+    frame_height = cap.get(cv2.CAP_PROP_FRAME_HEIGHT)
+    print(f"Camera resolution: {frame_width} x {frame_height}")
 
     while cap.isOpened():
+        session.refresh_from_db()
+        if session.end_time is not None:
+            break
+
         ret, frame = cap.read()
         if not ret:
             break
@@ -172,26 +197,53 @@ def webcam_gaze_tracking(session):
         results = face_mesh.process(rgb_frame)
 
         if results.multi_face_landmarks:
-            alert_sent = False
             for face_landmarks in results.multi_face_landmarks:
-                nose_tip = face_landmarks.landmark[1]
-                gaze_x, gaze_y = nose_tip.x * 1920, nose_tip.y * 1080
+                if len(face_landmarks.landmark) > nose_index:
+                    nose_tip = face_landmarks.landmark[nose_index]
+                    if nose_tip.x is None or nose_tip.y is None:
+                        print(f"Landmark at index {nose_index} is null. Trying index 4.")
+                        if len(face_landmarks.landmark) > 4:
+                            nose_tip = face_landmarks.landmark[4]
+                    if nose_tip.x is not None and nose_tip.y is not None:
+                        # Use the actual capture resolution
+                        gaze_x = nose_tip.x * frame_width
+                        gaze_y = nose_tip.y * frame_height
+                        print(f"Detected gaze: x={gaze_x}, y={gaze_y}")
+                        try:
+                            GazeData.objects.create(
+                                session=session,
+                                gaze_x=gaze_x,
+                                gaze_y=gaze_y,
+                                pupil_diameter=0.0
+                            )
+                        except Exception as e:
+                            print(f"Error saving webcam gaze data: {e}")
 
-                try:
-                    GazeData.objects.create(session=session, gaze_x=gaze_x, gaze_y=gaze_y, pupil_diameter=0.0)
-                except Exception as e:
-                    print(f"Error saving webcam gaze data: {e}")
+                        try:
+                            async_to_sync(channel_layer.group_send)(
+                                "eye_tracking",
+                                {"type": "eye.data", "payload": {"gaze_x": gaze_x, "gaze_y": gaze_y}}
+                            )
+                        except Exception as e:
+                            print(f"Error sending gaze data: {e}")
+                    else:
+                        print("Valid nose_tip coordinates not found after fallback.")
+                else:
+                    print("Not enough landmarks in detected face.")
         else:
-            if not alert_sent:
-                channel_layer = get_channel_layer()
-                async_to_sync(channel_layer.group_send)(
-                    "eye_tracking", {"type": "eye.alert", "message": choose_alert_message()}
-                )
-                alert_sent = True
+            current_time = time.time()
+            if current_time - last_alert_time > ALERT_COOLDOWN:
+                try:
+                    async_to_sync(channel_layer.group_send)(
+                        "eye_tracking",
+                        {"type": "eye.alert", "message": choose_alert_message()}
+                    )
+                except Exception as e:
+                    print(f"Error sending alert message: {e}")
+                last_alert_time = current_time
 
-        cv2.imshow("Eye Tracking", frame)
-        if cv2.waitKey(1) & 0xFF == ord('q'):
-            break
+        time.sleep(0.03)
 
     cap.release()
     cv2.destroyAllWindows()
+

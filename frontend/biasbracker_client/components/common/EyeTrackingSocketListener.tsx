@@ -3,13 +3,16 @@
 import React, { useEffect } from "react";
 import { toast } from "react-hot-toast";
 
-const EyeTrackingSocketListener = () => {
+interface EyeTrackingSocketListenerProps {
+  onGazeData?: (data: { gaze_x: number; gaze_y: number }) => void;
+}
+
+const EyeTrackingSocketListener: React.FC<EyeTrackingSocketListenerProps> = ({ onGazeData }) => {
   useEffect(() => {
     let socket: WebSocket | null = null;
 
-    // Only run on client side
     if (typeof window !== "undefined") {
-      // Replace "localhost:8000" with your Django Channels host if different.
+      // Ensure the URL is correct and matches your Channels routing configuration.
       socket = new WebSocket("ws://127.0.0.1:8000/ws/eye-tracking/");
 
       socket.onopen = () => {
@@ -19,19 +22,24 @@ const EyeTrackingSocketListener = () => {
       socket.onmessage = (event) => {
         try {
           const data = JSON.parse(event.data);
-          // If your consumer sends: { type: "eye.alert", message: "User looking away!" }
+          console.log("[WebSocket] Received:", data); // Log every message
+
           if (data.type === "eye.alert") {
             toast.error(data.message || "User looking away!");
-          }
-          // If your consumer sends: { type: "eye.data", payload: { gaze_x, gaze_y } }
-          else if (data.type === "eye.data") {
+          } else if (data.type === "eye.data") {
             const { gaze_x, gaze_y } = data.payload || {};
-            // Do something with the real-time gaze coords
-            console.log("Real-time Gaze:", { x: gaze_x, y: gaze_y });
+            console.log("Live gaze data:", { gaze_x, gaze_y });
+            if (onGazeData && typeof gaze_x === "number" && typeof gaze_y === "number") {
+              onGazeData({ gaze_x, gaze_y });
+            }
           }
         } catch (err) {
           console.warn("[WebSocket] Unable to parse message:", event.data);
         }
+      };
+
+      socket.onerror = (err) => {
+        console.error("[WebSocket] Error:", err);
       };
 
       socket.onclose = () => {
@@ -39,15 +47,13 @@ const EyeTrackingSocketListener = () => {
       };
     }
 
-    // Cleanup
     return () => {
       if (socket) {
         socket.close();
       }
     };
-  }, []);
+  }, [onGazeData]);
 
-  // This component renders nothing; it just listens in the background.
   return null;
 };
 
