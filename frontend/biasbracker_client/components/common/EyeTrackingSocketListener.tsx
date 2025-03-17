@@ -10,10 +10,9 @@ interface EyeTrackingSocketListenerProps {
 const EyeTrackingSocketListener: React.FC<EyeTrackingSocketListenerProps> = ({ onGazeData }) => {
   useEffect(() => {
     let socket: WebSocket | null = null;
-
     if (typeof window !== "undefined") {
       // Ensure the URL is correct and matches your Channels routing configuration.
-      socket = new WebSocket("ws://127.0.0.1:8000/ws/eye-tracking/");
+      socket = new WebSocket("wss://biasbreaker-a2l8.onrender.com/ws/eye-tracking/");
 
       socket.onopen = () => {
         console.log("[WebSocket] Connected to /ws/eye-tracking/");

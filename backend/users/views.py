@@ -66,17 +66,21 @@ class CustomTokenObtainPairView(TokenObtainPairView):
         return response
 
 class CustomTokenRefreshView(TokenRefreshView):
-    def post(self,request,*args,**kwargs):
-        refresh_token = request.COOKIES.get('refresh')
+    def get_serializer(self, *args, **kwargs):
+        # Create a mutable copy of the data
+        data = kwargs.get('data', {}).copy()
+        # If refresh token is not in the data, add it from cookies
+        if 'refresh' not in data:
+            refresh_token = self.request.COOKIES.get('refresh')
+            if refresh_token:
+                data['refresh'] = refresh_token
+        kwargs['data'] = data
+        return super().get_serializer(*args, **kwargs)
 
-        if refresh_token:
-            request.data['refresh'] = refresh_token
-        
-        response = super().post(request,*args,**kwargs)
-
+    def post(self, request, *args, **kwargs):
+        response = super().post(request, *args, **kwargs)
         if response.status_code == 200:
             access_token = response.data.get('access')
-
             response.set_cookie(
                 'access',
                 access_token,
@@ -84,9 +88,8 @@ class CustomTokenRefreshView(TokenRefreshView):
                 path=settings.AUTH_COOKIE_PATH,
                 secure=settings.AUTH_COOKIE_SECURE,
                 httponly=settings.AUTH_COOKIE_HTTP_ONLY,
-                samesite=settings.AUTH_COOKIE_SAMESITE
+                samesite=settings.AUTH_COOKIE_SAMESITE,
             )
-
         return response
 
 
