@@ -1,4 +1,4 @@
-import { useAddUserPointsMutation } from "@/redux/features/pointsApiSlice";
+import { useAddUserPointsMutation } from "@/redux/features/userPointsApiSlice";
 import { toast } from "react-hot-toast";
 
 const [addUserPoints] = useAddUserPointsMutation();

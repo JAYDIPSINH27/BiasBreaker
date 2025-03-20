@@ -6,15 +6,23 @@ import ArticleDashboard from "@/components/common/ArticleDashboard";
 import ArticleDetail from "@/components/common/ArticleDetail";
 import { useGetUserArticlesQuery } from "@/redux/features/articleApiSlice";
 
+interface Article {
+  id: number;
+  title: string;
+  content: string;
+  // add other properties as needed
+}
+
 const Page = () => {
   const [selectedArticleId, setSelectedArticleId] = useState<number | null>(null);
-  const [selectedArticle, setSelectedArticle] = useState<any>(null);
+  const [selectedArticle, setSelectedArticle] = useState<Article | null>(null);
 
-  //  Fetch articles dynamically
-  const { data: articles = [], refetch } = useGetUserArticlesQuery();
+  // Fetch articles dynamically
+  // If you are not using `articles`, you can omit it to avoid the unused variable error.
+  const { refetch } = useGetUserArticlesQuery();
 
   // Handle article selection with ID and full content
-  const handleSelectArticle = (articleId: number, articleData: any) => {
+  const handleSelectArticle = (articleId: number, articleData: Article) => {
     setSelectedArticleId(articleId);
     setSelectedArticle(articleData);
   };

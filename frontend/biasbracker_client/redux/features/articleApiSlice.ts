@@ -9,7 +9,7 @@ export const articleApiSlice = apiSlice.injectEndpoints({
         body: { topic },
       }),
     }),
-    getUserArticles: builder.query({
+    getUserArticles: builder.query<void, void>({
       query: () => "articles/user-articles/",
     }),
     generateAlternativePerspective: builder.mutation({
@@ -18,7 +18,7 @@ export const articleApiSlice = apiSlice.injectEndpoints({
         method: "POST",
       }),
     }),
-    getAlternativePerspective: builder.query({
+    getAlternativePerspective: builder.query<void, void>({
       query: (articleId) => `articles/alternative/${articleId}/`,
     }),
     generateQuiz: builder.mutation({
@@ -27,7 +27,7 @@ export const articleApiSlice = apiSlice.injectEndpoints({
         method: "POST",
       }),
     }),
-    getQuiz: builder.query({
+    getQuiz: builder.query<void, void>({
       query: (articleId) => `articles/quiz/${articleId}/`,
     }),
   }),

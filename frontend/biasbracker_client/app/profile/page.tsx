@@ -4,12 +4,19 @@ import { motion } from "framer-motion";
 import { useGetUserPointsQuery } from "@/redux/features/userPointsApiSlice";
 import { useRetrieveUserQuery } from "@/redux/features/authApiSlice";
 import { FaMedal } from "react-icons/fa";
-import { FiUser } from "react-icons/fi";
 import Spinner from "@/components/common/Spinner";
+
+// Define the TypeScript interface for User Points
+interface UserPoints {
+  total_points: number;
+  badges: string[];
+}
 
 const ProfilePage = () => {
   const { data: user, isLoading: userLoading } = useRetrieveUserQuery();
-  const { data: userPoints, isLoading: pointsLoading } = useGetUserPointsQuery();
+  const { data: userPoints, isLoading: pointsLoading } = useGetUserPointsQuery<UserPoints>();
+
+
 
   if (userLoading || pointsLoading) {
     return (
@@ -27,7 +34,9 @@ const ProfilePage = () => {
     );
   }
 
-  const { total_points, badges } = userPoints;
+  // Ensure safe access
+  const total_points = userPoints?.total_points ?? 0;
+  const badges = userPoints?.badges ?? [];
   const userInitials = user.first_name ? user.first_name[0].toUpperCase() : "?";
 
   return (
@@ -37,7 +46,7 @@ const ProfilePage = () => {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.6, ease: "easeOut" }}
     >
-      {/* 🔵 Profile Icon */}
+      {/* Profile Icon */}
       <motion.div
         className="w-24 h-24 mx-auto flex items-center justify-center text-4xl font-bold text-white bg-blue-500 rounded-full shadow-md"
         whileHover={{ scale: 1.05 }}
@@ -46,15 +55,13 @@ const ProfilePage = () => {
         {userInitials}
       </motion.div>
 
-      {/* 🧑‍💼 User Info */}
+      {/* User Info */}
       <h2 className="text-2xl font-bold text-gray-800 mt-4">
         {user.first_name} {user.last_name}
       </h2>
       <p className="text-gray-600">{user.email}</p>
-      {/* <p className="text-gray-500 text-sm">Username: @{user.username}</p> */}
-      {/* <p className="text-gray-400 text-xs mt-1">Joined: {new Date(user.date_joined).toLocaleDateString()}</p> */}
 
-      {/* 🌟 Points Section */}
+      {/* Points Section */}
       <div className="mt-6 bg-gray-100 p-5 rounded-lg shadow">
         <h3 className="text-lg font-semibold text-gray-700">Total Points:</h3>
         <motion.p
@@ -67,9 +74,11 @@ const ProfilePage = () => {
         </motion.p>
       </div>
 
-      {/* 📈 Progress Bar */}
+      {/* Progress Bar */}
       <div className="mt-6">
-        <h3 className="text-lg font-semibold text-gray-700">Next Badge Progress</h3>
+        <h3 className="text-lg font-semibold text-gray-700">
+          Next Badge Progress
+        </h3>
         <div className="w-full bg-gray-300 rounded-full h-5 mt-2 relative overflow-hidden">
           <motion.div
             className="bg-green-500 h-5 rounded-full"
@@ -88,11 +97,13 @@ const ProfilePage = () => {
         </div>
       </div>
 
-      {/* 🎖️ Badges Section */}
+      {/* Badges Section */}
       <div className="mt-8">
         <h3 className="text-lg font-semibold text-gray-700">Your Badges</h3>
         {badges.length === 0 ? (
-          <p className="text-gray-500 mt-2">No badges yet. Keep earning points!</p>
+          <p className="text-gray-500 mt-2">
+            No badges yet. Keep earning points!
+          </p>
         ) : (
           <motion.div
             className="flex flex-wrap justify-center gap-3 mt-3"

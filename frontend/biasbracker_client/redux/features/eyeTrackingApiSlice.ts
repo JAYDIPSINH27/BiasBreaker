@@ -40,12 +40,12 @@ export const eyeTrackingApiSlice = apiSlice.injectEndpoints({
     }),
 
     // Retrieve all eye tracking sessions
-    getEyeTrackingSessions: builder.query({
+    getEyeTrackingSessions: builder.query<void, void>({
       query: () => "eye-track/sessions/",
     }),
 
     // Retrieve gaze data for a specific session
-    getGazeData: builder.query({
+    getGazeData: builder.query<void, void>({
       query: (sessionId) => `eye-track/gaze/${sessionId}/`,
     }),
   }),

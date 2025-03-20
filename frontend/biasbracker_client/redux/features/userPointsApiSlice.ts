@@ -1,8 +1,13 @@
 import { apiSlice } from "../services/apiSlice";
 
+interface UserPoints {
+  total_points: number;
+  badges: string[];
+}
+
 export const pointsApiSlice = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
-    getUserPoints: builder.query({
+    getUserPoints: builder.query<UserPoints, void>({
       query: () => "userpoints/",
     }),
     addUserPoints: builder.mutation({
