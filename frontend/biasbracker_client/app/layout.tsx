@@ -34,7 +34,7 @@ export default function RootLayout({
         <Provider>
           <Setup />
           <EyeTrackingSocketListener />
-          <ClientEyeTrackingWrapper /> {/* 👈 New client wrapper here */}
+          {/* <ClientEyeTrackingWrapper /> 👈 New client wrapper here */}
           <Navbar />
           <div>{children}</div>
           <Footer />

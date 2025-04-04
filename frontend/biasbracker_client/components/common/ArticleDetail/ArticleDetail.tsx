@@ -5,17 +5,20 @@ import { motion } from "framer-motion";
 import { toast } from "react-hot-toast";
 import { FaArrowLeft } from "react-icons/fa";
 
+// Existing local UI components
 import ArticleContent from "./ArticleContent";
 import EyeTrackingCard from "./EyeTrackingCard";
 import ReadingCountdownCard from "./ReadingCountdownCard";
 import AlternativePerspectiveCard from "./AlternativePerspectiveCard";
 import QuizCard from "./QuizCard";
 import LiveGazeOverlay from "./LiveGazeOverlay";
-
+import MediaPipeEyeTracking from "@/components/common/MediaPipeEyeTracking";
+import GazeTracker from "@/components/common/GazeTracker";
 import AlternativePerspectiveModal from "@/components/common/AlternativePerspectiveModal";
 import QuizModal from "@/components/common/QuizModal";
 import EyeTrackingSocketListener from "@/components/common/EyeTrackingSocketListener";
 
+// RTK-based queries & mutations
 import {
   useGenerateArticleMutation,
   useGenerateAlternativePerspectiveMutation,
@@ -34,47 +37,76 @@ import {
 
 interface ArticleDetailProps {
   articleId: number | null;
-  article: any;
+  article: any; // The article object
   onBack: () => void;
 }
 
-const ArticleDetail: React.FC<ArticleDetailProps> = ({ articleId, article, onBack }) => {
-  // UI States
-  const [isAltPerspectiveOpen, setAltPerspectiveOpen] = useState(false);
-  const [isQuizUnlocked, setQuizUnlocked] = useState(false);
-  const [isQuizOpen, setQuizOpen] = useState(false);
-
-  // Reading countdown
+const ArticleDetail: React.FC<ArticleDetailProps> = ({
+  articleId,
+  article,
+  onBack,
+}) => {
+  // -----------------------------------
+  // Basic reading countdown states
+  // -----------------------------------
   const [articleCountdown, setArticleCountdown] = useState(30);
   const [articlePointsAwarded, setArticlePointsAwarded] = useState(false);
 
+  // -----------------------------------
   // Alternative perspective countdown
+  // -----------------------------------
   const [altCountdown, setAltCountdown] = useState<number | null>(null);
   const [altPointsAwarded, setAltPointsAwarded] = useState(false);
+  const [isAltPerspectiveOpen, setAltPerspectiveOpen] = useState(false);
 
+  // -----------------------------------
+  // Quiz states
+  // -----------------------------------
+  const [isQuizUnlocked, setQuizUnlocked] = useState(false); // <--- declared only once
+  const [isQuizOpen, setQuizOpen] = useState(false);
+
+  // -----------------------------------
   // Eye tracking states
+  // -----------------------------------
   const [eyeTrackingSessionId, setEyeTrackingSessionId] = useState<string | null>(null);
   const [isGazeTracking, setIsGazeTracking] = useState(false);
   const [liveGaze, setLiveGaze] = useState<{ x: number; y: number } | null>(null);
 
-  // RTK queries and mutations
+  // -----------------------------------
+  // RTK queries & mutations
+  // -----------------------------------
   const [addUserPoints] = useAddUserPointsMutation();
   const [generateArticle, { isLoading: isGeneratingArticle }] = useGenerateArticleMutation();
-  const [generateAltPerspective, { isLoading: isGeneratingAlt }] = useGenerateAlternativePerspectiveMutation();
+  const [generateAltPerspective, { isLoading: isGeneratingAlt }] =
+    useGenerateAlternativePerspectiveMutation();
   const [generateQuiz, { isLoading: isGeneratingQuiz }] = useGenerateQuizMutation();
 
-  const { data: alternativePerspective, isLoading: isAltLoading, refetch: refetchAltPerspective } = useGetAlternativePerspectiveQuery(articleId, { skip: !articleId });
-  const { data: quiz, isLoading: isQuizLoading, refetch: refetchQuiz } = useGetQuizQuery(articleId, {
+  const { data: alternativePerspective, isLoading: isAltLoading, refetch: refetchAltPerspective } =
+    useGetAlternativePerspectiveQuery(articleId, { skip: !articleId });
+
+  const {
+    data: quiz,
+    isLoading: isQuizLoading,
+    refetch: refetchQuiz,
+  } = useGetQuizQuery(articleId, {
     skip: !isQuizUnlocked || !articleId,
   });
 
   const { data: tobiData } = useCheckTobiAvailabilityQuery();
-  const [startEyeTrackingSession, { isLoading: isStartingSession }] = useStartEyeTrackingSessionMutation();
-  const [stopEyeTrackingSession, { isLoading: isStoppingSession }] = useStopEyeTrackingSessionMutation();
+
+  // Eye-tracking session
+  const [startEyeTrackingSession, { isLoading: isStartingSession }] =
+    useStartEyeTrackingSessionMutation();
+  const [stopEyeTrackingSession, { isLoading: isStoppingSession }] =
+    useStopEyeTrackingSessionMutation();
+
+  // Gaze tracking toggles
   const [startGazeTracking, { isLoading: isStartingGaze }] = useStartGazeTrackingMutation();
   const [stopGazeTracking, { isLoading: isStoppingGaze }] = useStopGazeTrackingMutation();
 
-  // Eye tracking handlers
+  // -----------------------------------
+  // Eye Tracking Session handlers
+  // -----------------------------------
   const handleStartEyeTracking = async () => {
     try {
       const response = await startEyeTrackingSession().unwrap();
@@ -104,9 +136,21 @@ const ArticleDetail: React.FC<ArticleDetailProps> = ({ articleId, article, onBac
     }
   };
 
+  // Cleanup if unmounted
+  useEffect(() => {
+    return () => {
+      if (eyeTrackingSessionId) {
+        stopEyeTrackingSession(eyeTrackingSessionId);
+      }
+    };
+  }, [eyeTrackingSessionId, stopEyeTrackingSession]);
+
+  // -----------------------------------
+  // Gaze tracking (real-time)
+  // -----------------------------------
   const handleStartGazeTracking = async () => {
     if (!eyeTrackingSessionId) {
-      toast.error("No active eye tracking session. Start session first.");
+      toast.error("No active session. Please start session first.");
       return;
     }
     try {
@@ -135,16 +179,9 @@ const ArticleDetail: React.FC<ArticleDetailProps> = ({ articleId, article, onBac
     }
   };
 
-  // Cleanup on unmount
-  useEffect(() => {
-    return () => {
-      if (eyeTrackingSessionId) {
-        stopEyeTrackingSession(eyeTrackingSessionId);
-      }
-    };
-  }, [eyeTrackingSessionId, stopEyeTrackingSession]);
-
+  // -----------------------------------
   // Article generation
+  // -----------------------------------
   const handleGenerateArticle = async () => {
     if (!articleId) {
       toast.error("No valid Article ID to generate content.");
@@ -159,7 +196,9 @@ const ArticleDetail: React.FC<ArticleDetailProps> = ({ articleId, article, onBac
     }
   };
 
-  // Reading countdown and awarding points
+  // -----------------------------------
+  // Reading countdown & awarding points
+  // -----------------------------------
   useEffect(() => {
     if (!article || !articleId || articlePointsAwarded) return;
     const interval = setInterval(() => {
@@ -194,7 +233,9 @@ const ArticleDetail: React.FC<ArticleDetailProps> = ({ articleId, article, onBac
       });
   }, [articlePointsAwarded, articleId, addUserPoints]);
 
+  // -----------------------------------
   // Alternative perspective logic
+  // -----------------------------------
   const handleOpenAltPerspective = async () => {
     if (!articleId) {
       toast.error("No article to explore an alternative perspective.");
@@ -254,7 +295,9 @@ const ArticleDetail: React.FC<ArticleDetailProps> = ({ articleId, article, onBac
     setQuizUnlocked(true);
   };
 
+  // -----------------------------------
   // Quiz logic
+  // -----------------------------------
   const handleOpenQuiz = async () => {
     if (!articleId) {
       toast.error("No article to create quiz from.");
@@ -304,14 +347,14 @@ const ArticleDetail: React.FC<ArticleDetailProps> = ({ articleId, article, onBac
         <FaArrowLeft className="h-6 w-6 text-white" />
       </button>
 
-      {/* Article Content */}
+      {/* Left: Article Content */}
       <ArticleContent
         article={article}
         handleGenerateArticle={handleGenerateArticle}
         isGeneratingArticle={isGeneratingArticle}
       />
 
-      {/* Action Cards */}
+      {/* Right: Action/Utility Cards */}
       <div className="w-1/4 flex flex-col space-y-3">
         <EyeTrackingCard
           tobiData={tobiData}
@@ -326,11 +369,13 @@ const ArticleDetail: React.FC<ArticleDetailProps> = ({ articleId, article, onBac
           isStartingGaze={isStartingGaze}
           isStoppingGaze={isStoppingGaze}
         />
+
         <ReadingCountdownCard
           article={article}
           articlePointsAwarded={articlePointsAwarded}
           articleCountdown={articleCountdown}
         />
+
         <AlternativePerspectiveCard
           article={article}
           isGeneratingAlt={isGeneratingAlt}
@@ -339,6 +384,7 @@ const ArticleDetail: React.FC<ArticleDetailProps> = ({ articleId, article, onBac
           altPointsAwarded={altPointsAwarded}
           handleOpenAltPerspective={handleOpenAltPerspective}
         />
+
         <QuizCard
           article={article}
           isQuizUnlocked={isQuizUnlocked}
@@ -348,13 +394,16 @@ const ArticleDetail: React.FC<ArticleDetailProps> = ({ articleId, article, onBac
         />
       </div>
 
-      {/* Live Gaze Overlay */}
+      {/* Overlays & Socket Listener */}
       <LiveGazeOverlay gaze={liveGaze} />
 
-      {/* Socket Listener */}
       <EyeTrackingSocketListener
         onGazeData={(data) => setLiveGaze({ x: data.gaze_x, y: data.gaze_y })}
       />
+
+{eyeTrackingSessionId && isGazeTracking && !tobiData?.tobi_available && (
+  <GazeTracker />
+)}
 
       {/* Modals */}
       <AlternativePerspectiveModal
