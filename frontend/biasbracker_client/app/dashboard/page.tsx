@@ -3,28 +3,33 @@
 import { useState } from "react";
 import TopicCloud from "@/components/common/TopicCloud";
 import ArticleDashboard from "@/components/common/ArticleDashboard";
-import ArticleDetail from "@/components/common/ArticleDetail";
+import ArticleDetail from "@/components/common/ArticleDetail/ArticleDetail";
 import { useGetUserArticlesQuery } from "@/redux/features/articleApiSlice";
 
-interface Article {
+// Export Article type so it can be reused elsewhere if needed.
+export interface Article {
   id: number;
   title: string;
   content: string;
   // add other properties as needed
 }
 
-const Page = () => {
+const DashboardPage = () => {
   const [selectedArticleId, setSelectedArticleId] = useState<number | null>(null);
   const [selectedArticle, setSelectedArticle] = useState<Article | null>(null);
 
-  // Fetch articles dynamically
-  // If you are not using `articles`, you can omit it to avoid the unused variable error.
+  // We only need refetch from the query here.
   const { refetch } = useGetUserArticlesQuery();
 
-  // Handle article selection with ID and full content
+  // Handle article selection by saving the article ID and full data.
   const handleSelectArticle = (articleId: number, articleData: Article) => {
     setSelectedArticleId(articleId);
     setSelectedArticle(articleData);
+  };
+
+  const handleBack = () => {
+    setSelectedArticleId(null);
+    setSelectedArticle(null);
   };
 
   return (
@@ -33,22 +38,19 @@ const Page = () => {
 
       {!selectedArticle ? (
         <>
-          {/* Replace reload with refetch */}
-          <TopicCloud onArticleGenerated={refetch} /> 
+          {/* TopicCloud uses refetch when an article is generated */}
+          <TopicCloud onArticleGenerated={refetch} />
           <ArticleDashboard onSelectArticle={handleSelectArticle} />
         </>
       ) : (
-        <ArticleDetail 
-          articleId={selectedArticleId} 
-          article={selectedArticle} 
-          onBack={() => {
-            setSelectedArticleId(null);
-            setSelectedArticle(null);
-          }} 
+        <ArticleDetail
+          articleId={selectedArticleId}
+          article={selectedArticle}
+          onBack={handleBack}
         />
       )}
     </div>
   );
 };
 
-export default Page;
+export default DashboardPage;
