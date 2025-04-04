@@ -3,7 +3,7 @@ import { apiSlice } from "../services/apiSlice";
 export const eyeTrackingApiSlice = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
     // Check if a Tobii eye tracker is available
-    checkTobiAvailability: builder.query({
+    checkTobiAvailability: builder.query<{ tobi_available: boolean }, void>({
       query: () => "eye-track/check-tobii/",
     }),
 

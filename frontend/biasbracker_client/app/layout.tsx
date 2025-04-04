@@ -6,7 +6,7 @@ import { Navbar, Footer } from "@/components/common";
 import Provider from "@/redux/provider";
 import { Setup } from "@/components/utils";
 import EyeTrackingSocketListener from "@/components/common/EyeTrackingSocketListener";
-
+import ClientEyeTrackingWrapper from "@/components/common/ClientEyeTrackingWrapper";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -30,19 +30,14 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
+      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
         <Provider>
           <Setup />
-          {/* <ProtectedRouter> */}
-
-          {/* EyeTracking WebSocket Listener */}
           <EyeTrackingSocketListener />
+          <ClientEyeTrackingWrapper /> {/* 👈 New client wrapper here */}
           <Navbar />
           <div>{children}</div>
           <Footer />
-          {/* </ProtectedRouter> */}
         </Provider>
       </body>
     </html>
