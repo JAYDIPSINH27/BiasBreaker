@@ -1,5 +1,4 @@
 import os
-import requests
 import json
 import re
 import random
@@ -9,14 +8,21 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from .models import Article, AlternativePerspective, Quiz
 from .serializers import ArticleSerializer, AlternativePerspectiveSerializer, QuizSerializer
+import google.generativeai as genai
 
-
+# OLd Setup
+"""
 API_URL = "https://api-inference.huggingface.co/models/mistralai/Mistral-7B-Instruct-v0.3"
 HEADERS = {
     "Authorization": f"Bearer {settings.HUGGINGFACE_TOKEN}",
     "Content-Type": "application/json",
 }
+"""
+# Configure Gemini API with your API key from Django settings
+genai.configure(api_key=settings.GEMINI_TOKEN)
 
+# Select the Gemini model you want to use (consider 'gemini-pro' for general tasks)
+MODEL_NAME = 'models/gemini-1.5-pro'
 
 PERSPECTIVE_CHOICES = ["Neutral", "Optimistic", "Critical", "Innovative", "Ethical"]
 BIAS_CHOICES = [
@@ -66,17 +72,17 @@ BIAS_CHOICES = [
 ]
 
 
-def extract_json_content(response_text):
-    """Extracts JSON content enclosed within ```json ... ```"""
+def extract_json_content_gemini(response_text):
+    """Extracts JSON content enclosed within ```json ... ``` from Gemini response."""
     match = re.search(r"```json\n(.*?)\n```", response_text, re.DOTALL)
     if match:
-        json_content = match.group(1)
+        json_content = match.group(1).strip()
         try:
-            return json.loads(json_content) 
+            return json.loads(json_content)
         except json.JSONDecodeError:
+            print(f"Error decoding JSON: {json_content}")
             return None  # Invalid JSON format
     return None  # No valid JSON found
-
 
 
 class GenerateArticleAPIView(APIView):
@@ -96,31 +102,37 @@ class GenerateArticleAPIView(APIView):
             f"You are a professional AI writer. Generate an engaging, well-structured article in valid JSON format with no extra text. "
             f"The JSON should include exactly these keys: 'title', 'introduction', 'sections' (sections key contains two sections a list of objects with 'heading' and 'content'), "
             f"'conclusion', and 'word_count' (an integer representing the approximate word count). "
-           f"Topic: {topic}. The article should primarily focus on {topic}, providing in-depth insights, examples, and analysis. "
-           f"Perspective: {perspective} (use this perspective to subtly frame the discussion, but do not make it the main subject). "
-           f"Cognitive Bias: {cognitive_bias} (allow this bias to subtly shape the narrative, but do not explicitly discuss the bias itself). "
-            "Ensure the article is factually accurate, logically structured, and compelling."
+            f"Topic: {topic}. The article should primarily focus on {topic}, providing in-depth insights, examples, and analysis. "
+            f"Perspective: {perspective} (use this perspective to subtly frame the discussion, but do not make it the main subject). "
+            f"Cognitive Bias: {cognitive_bias} (allow this bias to subtly shape the narrative, but do not explicitly discuss the bias itself). "
+            "Ensure the article is factually accurate, logically structured, and compelling. "
+            "Enclose the entire JSON response within ```json ... ```"
         )
 
-        response = requests.post(API_URL, headers=HEADERS, json={"inputs": prompt}, timeout=180)
-        if response.status_code != 200:
-            return Response({"error": "Failed to generate article", "details": response.json()}, status=500)
+        model = genai.GenerativeModel(MODEL_NAME)
 
-        parsed_content = extract_json_content(response.json()[0]["generated_text"])
-        if not parsed_content:
-            return Response({"error": "Invalid JSON response from model"}, status=500)
+        try:
+            response = model.generate_content(prompt)
+            response.resolve()
+            if response.text:
+                parsed_content = extract_json_content_gemini(response.text)
+                if parsed_content:
+                    article = Article.objects.create(
+                        user=user,
+                        title=parsed_content.get("title", "Untitled"),
+                        content=parsed_content,
+                        perspective=perspective,
+                        cognitive_bias=cognitive_bias,
+                        topic=topic
+                    )
+                    return Response(ArticleSerializer(article).data, status=201)
+                else:
+                    return Response({"error": "Invalid JSON response received from Gemini"}, status=500)
+            else:
+                return Response({"error": "Empty response from Gemini"}, status=500)
 
-        article = Article.objects.create(
-            user=user,
-            title=parsed_content["title"],
-            content=parsed_content,
-            perspective=perspective,
-            cognitive_bias=cognitive_bias,
-            topic=topic
-        )
-
-        return Response(ArticleSerializer(article).data, status=201)
-
+        except Exception as e:
+            return Response({"error": f"Gemini API error: {e}"}, status=500)
 
 
 class GenerateAlternativePerspectiveAPIView(APIView):
@@ -133,23 +145,30 @@ class GenerateAlternativePerspectiveAPIView(APIView):
             return Response({"error": "Article not found"}, status=404)
 
         alternative_perspective_prompt = (
-            f"Generate an alternative positive perspective for the article '{article}', "
-            "challenging or expanding on its key arguments while remaining factually accurate. "
-             f"The JSON should include exactly these keys: 'title', 'introduction', 'sections' (two sections having a list of objects with 'heading' and 'content'), "
-            f"'conclusion',"
-            "Ensure the response is in JSON format."
+            f"Generate an alternative positive perspective for the article titled '{article.title}' with the following content: '{article.content}'. "
+            "Challenge or expand on its key arguments while remaining factually accurate. "
+            "The JSON should include exactly these keys: 'title', 'introduction', 'sections' (two sections having a list of objects with 'heading' and 'content'), "
+            "'conclusion'. "
+            "Ensure the response is in valid JSON format and enclose it within ```json ... ```"
         )
 
-        response = requests.post(API_URL, headers=HEADERS, json={"inputs": alternative_perspective_prompt}, timeout=180)
-        if response.status_code != 200:
-            return Response({"error": "Failed to generate alternative perspective", "details": response.json()}, status=500)
+        model = genai.GenerativeModel(MODEL_NAME)
 
-        parsed_content = extract_json_content(response.json()[0]["generated_text"])
-        if not parsed_content:
-            return Response({"error": "Invalid JSON response from model"}, status=500)
+        try:
+            response = model.generate_content(alternative_perspective_prompt)
+            response.resolve()
+            if response.text:
+                parsed_content = extract_json_content_gemini(response.text)
+                if parsed_content:
+                    alternative = AlternativePerspective.objects.create(article=article, content=parsed_content)
+                    return Response(AlternativePerspectiveSerializer(alternative).data, status=201)
+                else:
+                    return Response({"error": "Invalid JSON response received from Gemini for alternative perspective"}, status=500)
+            else:
+                return Response({"error": "Empty response from Gemini for alternative perspective"}, status=500)
 
-        alternative = AlternativePerspective.objects.create(article=article, content=parsed_content)
-        return Response(AlternativePerspectiveSerializer(alternative).data, status=201)
+        except Exception as e:
+            return Response({"error": f"Gemini API error (alternative perspective): {e}"}, status=500)
 
 
 class GenerateQuizAPIView(APIView):
@@ -162,26 +181,40 @@ class GenerateQuizAPIView(APIView):
         except Article.DoesNotExist:
             return Response({"error": "Article not found"}, status=404)
         except AlternativePerspective.DoesNotExist:
-            return Response({"error": "Alternative perspective not found"}, status=404)
+            return Response({"error": "Alternative perspective not found for this article"}, status=404)
 
         quiz_prompt = (
-        f"Generate a multiple-choice quiz based on the article '{article}' "
-        f"and its alternative perspective '{alternative_perspective.content}'. "
-        "Include exactly 10 questions covering both viewpoints. "
-        "Return a valid JSON array of objects where each object has exactly the keys 'question', 'options' (an array), and 'answer'. "
-        "Ensure the response is in JSON format."
-    )
-        response = requests.post(API_URL, headers=HEADERS, json={"inputs": quiz_prompt}, timeout=180)
-        if response.status_code != 200:
-            return Response({"error": "Failed to generate quiz", "details": response.json()}, status=500)
+            f"Generate a multiple-choice quiz based on the article titled '{article.title}' with content: '{article.content}' "
+            f"and its alternative perspective: '{alternative_perspective.content}'. "
+            "Include exactly 10 distinct questions covering both viewpoints. "
+            "Return a valid JSON array of objects where each object has exactly the keys 'question' (string), 'options' (an array of strings with 4 options), and 'answer' (string, one of the options). "
+            "Ensure the response is in valid JSON format and enclose the entire array within ```json ... ```"
+        )
 
-        parsed_content = extract_json_content(response.json()[0]["generated_text"])
-        if not parsed_content:
-            return Response({"error": "Invalid JSON response from model"}, status=500)
+        model = genai.GenerativeModel(MODEL_NAME)
 
-        quiz = Quiz.objects.create(article=article, questions=parsed_content)
-        return Response(QuizSerializer(quiz).data, status=201)
+        try:
+            response = model.generate_content(quiz_prompt)
+            response.resolve()
+            if response.text:
+                parsed_content = extract_json_content_gemini(response.text)
+                if isinstance(parsed_content, list) and len(parsed_content) == 10 and all(
+                    isinstance(q, dict) and
+                    'question' in q and isinstance(q['question'], str) and
+                    'options' in q and isinstance(q['options'], list) and len(q['options']) == 4 and all(isinstance(opt, str) for opt in q['options']) and
+                    'answer' in q and isinstance(q['answer'], str) and q['answer'] in q['options']
+                    for q in parsed_content
+                ):
+                    quiz = Quiz.objects.create(article=article, questions=parsed_content)
+                    return Response(QuizSerializer(quiz).data, status=201)
+                else:
+                    print(f"Invalid quiz JSON structure: {parsed_content}")
+                    return Response({"error": "Invalid JSON response format received from Gemini for quiz"}, status=500)
+            else:
+                return Response({"error": "Empty response from Gemini for quiz"}, status=500)
 
+        except Exception as e:
+            return Response({"error": f"Gemini API error (quiz generation): {e}"}, status=500)
 
 
 class UserArticlesAPIView(APIView):
@@ -192,6 +225,7 @@ class UserArticlesAPIView(APIView):
         articles = Article.objects.filter(user=request.user).order_by("-created_at")
         serializer = ArticleSerializer(articles, many=True)
         return Response(serializer.data)
+
 
 class GetAlternativePerspectiveAPIView(APIView):
     permission_classes = [IsAuthenticated]
@@ -217,7 +251,8 @@ class GetQuizAPIView(APIView):
             return Response({"error": "Quiz not found"}, status=404)
 
         return Response(QuizSerializer(quiz).data, status=200)
-    
+
+
 class GetArticleAPIView(APIView):
     permission_classes = [IsAuthenticated]
 
