@@ -2,7 +2,7 @@ from django.urls import path
 from .views import (
     GenerateArticleAPIView, UserArticlesAPIView, 
     GenerateAlternativePerspectiveAPIView, GetAlternativePerspectiveAPIView,
-    GenerateQuizAPIView, GetQuizAPIView
+    GenerateQuizAPIView, GetQuizAPIView, GetArticleAPIView
 )
 
 urlpatterns = [
@@ -12,4 +12,5 @@ urlpatterns = [
     path("alternative/generate/<int:article_id>/", GenerateAlternativePerspectiveAPIView.as_view(), name="generate-alternative"),
     path("quiz/<int:article_id>/", GetQuizAPIView.as_view(), name="get-quiz"),
     path("quiz/generate/<int:article_id>/", GenerateQuizAPIView.as_view(), name="generate-quiz"),
+     path("<int:article_id>/", GetArticleAPIView.as_view(), name='get-article'),
 ]

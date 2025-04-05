@@ -28,4 +28,6 @@ class AddUserPoints(APIView):
             return Response({"error": "Action is required"}, status=400)
 
         result = add_user_points(request.user, action, article_id)
+        if "points" in result:
+            result["success"] = True
         return Response(result)

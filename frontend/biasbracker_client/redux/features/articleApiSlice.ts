@@ -1,5 +1,6 @@
 import { apiSlice } from "../services/apiSlice";
 
+
 export const articleApiSlice = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
     generateArticle: builder.mutation({
@@ -30,6 +31,9 @@ export const articleApiSlice = apiSlice.injectEndpoints({
     getQuiz: builder.query<void, void>({
       query: (articleId) => `articles/quiz/${articleId}/`,
     }),
+    getArticle: builder.query<Article, number>({
+      query: (articleId) => `articles/${articleId}/`,
+    }),
   }),
   overrideExisting: false,
 });
@@ -41,4 +45,5 @@ export const {
   useGetAlternativePerspectiveQuery,
   useGenerateQuizMutation,
   useGetQuizQuery,
+  useGetArticleQuery, 
 } = articleApiSlice;

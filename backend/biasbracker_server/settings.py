@@ -284,4 +284,5 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 AUTH_USER_MODEL = 'users.UserAccount'
 
 HUGGINGFACE_TOKEN = getenv("HUGGINGFACE_TOKEN")
+GEMINI_TOKEN = getenv("GEMINI_TOKEN")
 

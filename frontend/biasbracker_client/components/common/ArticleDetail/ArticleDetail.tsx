@@ -179,13 +179,15 @@ const ArticleDetail: React.FC<ArticleDetailProps> = ({ articleId, article, onBac
     addUserPoints({ action: "article_view", article_id: articleId })
       .unwrap()
       .then((res) => {
-        if (res?.success === true) {
+        console.log("Response:", res); 
+        if (res && res.success) {
           toast.success("+5 Points for reading!");
-          if (res?.new_badges?.length > 0) {
+          if (res.new_badges && res.new_badges.length > 0) {
             toast.success(`New Badge: ${res.new_badges.join(", ")}`);
           }
         } else {
-          toast.error(res?.message || "Failed to award reading points.");
+          // Check for either a message or an error key
+          toast.error(res?.message || res?.error || "Failed to award reading points.");
         }
       })
       .catch((error) => {

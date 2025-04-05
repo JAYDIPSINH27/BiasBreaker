@@ -20,9 +20,49 @@ HEADERS = {
 
 PERSPECTIVE_CHOICES = ["Neutral", "Optimistic", "Critical", "Innovative", "Ethical"]
 BIAS_CHOICES = [
-    "Confirmation Bias", "Anchoring Bias", "Availability Bias",
-    "Framing Effect", "Overconfidence Bias", "Negativity Bias",
-    "Bandwagon Effect", "Sunk Cost Fallacy"
+    "Confirmation Bias",
+    "Anchoring Bias",
+    "Availability Bias",
+    "Framing Effect",
+    "Overconfidence Bias",
+    "Bandwagon Effect",
+    "Sunk Cost Fallacy",
+    "Hindsight Bias",
+    "Self-Serving Bias",
+    "Fundamental Attribution Error",
+    "Halo Effect",
+    "In-group Bias",
+    "Out-group Homogeneity Bias",
+    "Optimism Bias",
+    "Status Quo Bias",
+    "Dunning-Kruger Effect",
+    "Illusory Superiority",
+    "Gambler's Fallacy",
+    "False Consensus Effect",
+    "Choice-supportive Bias",
+    "Projection Bias",
+    "Recency Bias",
+    "Belief Bias",
+    "Authority Bias",
+    "Clustering Illusion",
+    "Contrast Effect",
+    "Curse of Knowledge",
+    "Endowment Effect",
+    "Focusing Effect",
+    "Just-World Hypothesis",
+    "Planning Fallacy",
+    "Survivorship Bias",
+    "Ostrich Effect",
+    "Placebo Effect",
+    "Pessimism Bias",
+    "Pro-innovation Bias",
+    "Reactance",
+    "Reciprocity Bias",
+    "Salience Bias",
+    "Selective Perception",
+    "Semmelweis Reflex",
+    "Social Desirability Bias",
+    "Zero-risk Bias"
 ]
 
 
@@ -93,7 +133,7 @@ class GenerateAlternativePerspectiveAPIView(APIView):
             return Response({"error": "Article not found"}, status=404)
 
         alternative_perspective_prompt = (
-            f"Generate an alternative perspective for the article '{article}', "
+            f"Generate an alternative positive perspective for the article '{article}', "
             "challenging or expanding on its key arguments while remaining factually accurate. "
              f"The JSON should include exactly these keys: 'title', 'introduction', 'sections' (two sections having a list of objects with 'heading' and 'content'), "
             f"'conclusion',"
@@ -125,12 +165,12 @@ class GenerateQuizAPIView(APIView):
             return Response({"error": "Alternative perspective not found"}, status=404)
 
         quiz_prompt = (
-            f"Generate a multiple-choice quiz with answers based on the article '{article}' "
-            f"and its alternative perspective '{alternative_perspective.content}'. Include 10 questions covering both viewpoints. "
-            f"The JSON should include exactly these keys: 'question', 'options' (array of options), and 'answer'. "
-            "Ensure the response is in JSON format."
-        )
-
+        f"Generate a multiple-choice quiz based on the article '{article}' "
+        f"and its alternative perspective '{alternative_perspective.content}'. "
+        "Include exactly 10 questions covering both viewpoints. "
+        "Return a valid JSON array of objects where each object has exactly the keys 'question', 'options' (an array), and 'answer'. "
+        "Ensure the response is in JSON format."
+    )
         response = requests.post(API_URL, headers=HEADERS, json={"inputs": quiz_prompt}, timeout=180)
         if response.status_code != 200:
             return Response({"error": "Failed to generate quiz", "details": response.json()}, status=500)
@@ -177,3 +217,15 @@ class GetQuizAPIView(APIView):
             return Response({"error": "Quiz not found"}, status=404)
 
         return Response(QuizSerializer(quiz).data, status=200)
+    
+class GetArticleAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, article_id):
+        try:
+            article = Article.objects.get(id=article_id)
+        except Article.DoesNotExist:
+            return Response({"error": "Article not found"}, status=404)
+
+        serializer = ArticleSerializer(article)
+        return Response(serializer.data, status=200)
