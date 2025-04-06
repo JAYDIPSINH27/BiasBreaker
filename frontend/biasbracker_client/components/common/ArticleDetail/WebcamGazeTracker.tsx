@@ -1,118 +1,137 @@
 "use client";
 
-import React, { useRef, useState, useEffect, useCallback } from "react";
+import React, { useEffect, useRef, useState } from "react";
+import {
+  FaceLandmarker,
+  FilesetResolver,
+  DrawingUtils,
+} from "@mediapipe/tasks-vision";
 
 interface WebcamGazeTrackerProps {
-  onGazeData: (gaze: { x: number; y: number }) => void;
+  sessionId: string | null;
   isActive: boolean;
+  onGazeData: (data: { x: number; y: number }) => void;
 }
 
-const WebcamGazeTracker: React.FC<WebcamGazeTrackerProps> = ({ onGazeData, isActive }) => {
+const WebcamGazeTracker: React.FC<WebcamGazeTrackerProps> = ({
+  sessionId,
+  isActive,
+  onGazeData,
+}) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [isCameraActive, setIsCameraActive] = useState(false);
-  const animationFrameId = useRef<number | null>(null);
-  const streamRef = useRef<MediaStream | null>(null);
+  const faceLandmarkerRef = useRef<FaceLandmarker | null>(null);
+  const rafId = useRef<number>();
+  const [isReady, setIsReady] = useState(false);
 
-  const handleGazeEstimation = useCallback(() => {
-    if (!videoRef.current || !canvasRef.current || !isActive || !isCameraActive) {
-      return;
+  const MODEL_URL =
+    "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task";
+
+  const WASM_PATH =
+    "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.3/wasm";
+
+  const init = async () => {
+    try {
+      const vision = await FilesetResolver.forVisionTasks(WASM_PATH);
+      const faceLandmarker = await FaceLandmarker.createFromOptions(vision, {
+        baseOptions: {
+          modelAssetPath: MODEL_URL,
+          delegate: "GPU",
+        },
+        runningMode: "VIDEO",
+        outputFaceBlendshapes: false,
+        outputFacialTransformationMatrixes: false,
+        numFaces: 1,
+      });
+      faceLandmarkerRef.current = faceLandmarker;
+      setIsReady(true);
+      console.log("✅ FaceLandmarker initialized.");
+    } catch (err) {
+      console.error("❌ Failed to initialize FaceLandmarker:", err);
     }
+  };
 
+  const startCamera = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        await videoRef.current.play();
+        console.log("🎥 Webcam started.");
+        detectFace();
+      }
+    } catch (err) {
+      console.error("❌ Webcam access error:", err);
+    }
+  };
+
+  const detectFace = () => {
     const video = videoRef.current;
-    const canvas = canvasRef.current;
-    const context = canvas.getContext("2d");
+    if (!video || !faceLandmarkerRef.current) return;
 
+    const canvas = canvasRef.current!;
+    const ctx = canvas.getContext("2d")!;
     canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;
+    const drawingUtils = new DrawingUtils(ctx);
 
-    context?.drawImage(video, 0, 0, canvas.width, canvas.height);
+    const analyze = () => {
+      const results = faceLandmarkerRef.current!.detectForVideo(video, performance.now());
 
-    // **Replace this with your actual gaze estimation logic.**
-    // This is a placeholder that simulates gaze data based on time.
-    const now = Date.now() % 5000;
-    const simulatedX = (Math.sin(now * 0.001) * 0.3 + 0.5) * window.innerWidth;
-    const simulatedY = (Math.cos(now * 0.0015) * 0.3 + 0.5) * window.innerHeight;
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      if (results?.faceLandmarks?.[0]) {
+        drawingUtils.drawConnectors(
+          results.faceLandmarks[0],
+          FaceLandmarker.FACE_LANDMARKS_TESSELATION,
+          { color: "#00FF00", lineWidth: 1 }
+        );
 
-    onGazeData({ x: simulatedX, y: simulatedY });
+        const nose = results.faceLandmarks[0][1]; // Nose tip
+        const gazeX = nose.x * window.innerWidth;
+        const gazeY = nose.y * window.innerHeight;
 
-    animationFrameId.current = requestAnimationFrame(handleGazeEstimation);
-  }, [isActive, isCameraActive, onGazeData]);
+        console.log("👁 Gaze:", { x: gazeX, y: gazeY });
+        onGazeData({ x: gazeX, y: gazeY });
+      }
+
+      rafId.current = requestAnimationFrame(analyze);
+    };
+
+    analyze();
+  };
+
+  const stopCamera = () => {
+    if (videoRef.current?.srcObject) {
+      const stream = videoRef.current.srcObject as MediaStream;
+      stream.getTracks().forEach((track) => track.stop());
+      videoRef.current.srcObject = null;
+      console.log("🛑 Webcam stopped.");
+    }
+    if (rafId.current) cancelAnimationFrame(rafId.current);
+  };
 
   useEffect(() => {
-    const startCamera = async () => {
-      try {
-        streamRef.current = await navigator.mediaDevices.getUserMedia({ video: true });
-        if (videoRef.current) {
-          videoRef.current.srcObject = streamRef.current;
-          setIsCameraActive(true);
-        }
-      } catch (error) {
-        console.error("Error accessing webcam:", error);
-        setIsCameraActive(false);
-      }
-    };
-
-    const stopCamera = () => {
-      if (streamRef.current) {
-        streamRef.current.getTracks().forEach((track) => track.stop());
-        streamRef.current = null;
-        setIsCameraActive(false);
-      }
-    };
-
     if (isActive) {
-      startCamera();
-      // Start gaze estimation only after the camera is active
-      if (isCameraActive) {
-        animationFrameId.current = requestAnimationFrame(handleGazeEstimation);
-      }
+      init();
     } else {
       stopCamera();
-      if (animationFrameId.current) {
-        cancelAnimationFrame(animationFrameId.current);
-        animationFrameId.current = null;
-      }
     }
 
     return () => {
       stopCamera();
-      if (animationFrameId.current) {
-        cancelAnimationFrame(animationFrameId.current);
-        animationFrameId.current = null;
-      }
     };
-  }, [isActive, handleGazeEstimation, isCameraActive]); // Added isCameraActive to dependency array
+  }, [isActive]);
 
-  // Re-trigger gaze estimation if camera becomes active while isActive is true
   useEffect(() => {
-    if (isActive && isCameraActive && !animationFrameId.current) {
-      animationFrameId.current = requestAnimationFrame(handleGazeEstimation);
+    if (isActive && isReady) {
+      startCamera();
     }
-  }, [isActive, isCameraActive, handleGazeEstimation, animationFrameId]);
+  }, [isReady, isActive]);
 
   return (
-    <div style={{ position: "fixed", top: 0, left: 0, width: 0, height: 0, overflow: "hidden" }}>
-      <video ref={videoRef} autoPlay style={{ display: "none" }} />
-      <canvas ref={canvasRef} style={{ display: "none" }} />
-      {!isCameraActive && isActive && (
-        <div
-          style={{
-            position: "fixed",
-            top: "50%",
-            left: "50%",
-            transform: "translate(-50%, -50%)",
-            backgroundColor: "rgba(0, 0, 0, 0.5)",
-            color: "white",
-            padding: "20px",
-            borderRadius: "8px",
-            zIndex: 1000,
-          }}
-        >
-          <p>Waiting for webcam access...</p>
-          <p className="text-sm">Please ensure your webcam is enabled and permissions are granted.</p>
-        </div>
-      )}
+    <div style={{ display: "none" }}>
+      <video ref={videoRef} playsInline muted />
+      <canvas ref={canvasRef} />
     </div>
   );
 };

@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Frontend WebSocket Tester with Gaze Dot</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0; /* Remove default body margin */
+            background-color: #f4f6f8;
+            color: #333;
+            overflow: hidden; /* Prevent scrollbars when dot moves */
+            position: relative; /* For absolute positioning of the dot */
+            height: 100vh; /* Make body take full viewport height */
+        }
+        #messages {
+            background: #fff;
+            border: 1px solid #ccc;
+            padding: 10px;
+            height: 200px; /* Reduced height for better visibility of dot */
+            overflow-y: scroll;
+            margin: 20px;
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 300px;
+            z-index: 10; /* Ensure messages are above the dot */
+        }
+        .msg {
+            padding: 5px;
+            border-bottom: 1px solid #eee;
+        }
+        .eye-data { color: green; }
+        .eye-alert { color: red; }
+
+        #gaze-dot {
+            width: 20px;
+            height: 20px;
+            background-color: rgba(255, 0, 0, 0.8); /* Red with some transparency */
+            border-radius: 50%;
+            position: absolute;
+            pointer-events: none; /* Allows interaction with elements behind the dot */
+            transform: translate(-50%, -50%); /* Center the dot on the coordinates */
+            z-index: 5; /* Ensure the dot is above other content */
+        }
+    </style>
+</head>
+<body>
+
+    <h2>🟢 Frontend WebSocket Tester with Gaze Dot</h2>
+    <div id="messages"></div>
+    <div id="gaze-dot" style="left: 50%; top: 50%; display: none;"></div>
+
+    <script>
+        const wsUrl = "ws://localhost:8000/ws/eye-tracking/";
+        const messagesDiv = document.getElementById('messages');
+        const gazeDot = document.getElementById('gaze-dot');
+
+        function appendMessage(type, content) {
+            const msgDiv = document.createElement('div');
+            msgDiv.classList.add('msg', type);
+            msgDiv.textContent = `[${type}] ${JSON.stringify(content)}`;
+            messagesDiv.appendChild(msgDiv);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+
+        const socket = new WebSocket(wsUrl);
+
+        socket.onopen = () => {
+            appendMessage("status", "✅ Connected to backend WebSocket");
+        };
+
+        socket.onmessage = (event) => {
+            const data = JSON.parse(event.data);
+            if (data.type === "eye.data") {
+                appendMessage("eye-data", data.payload);
+                // Update the position of the gaze dot
+                if (data.payload && typeof data.payload.gaze_x === 'number' && typeof data.payload.gaze_y === 'number') {
+                    gazeDot.style.left = `${data.payload.gaze_x}px`;
+                    gazeDot.style.top = `${data.payload.gaze_y}px`;
+                    gazeDot.style.display = 'block'; // Make the dot visible when data arrives
+                } else {
+                    gazeDot.style.display = 'none'; // Hide if no valid gaze data
+                }
+            } else if (data.type === "eye.alert") {
+                appendMessage("eye-alert", data.message);
+                gazeDot.style.display = 'none'; // Optionally hide dot on alerts
+            } else {
+                appendMessage("unknown", data);
+                gazeDot.style.display = 'none'; // Optionally hide dot on unknown messages
+            }
+        };
+
+        socket.onerror = (error) => {
+            appendMessage("error", `❌ Error: ${error}`);
+            gazeDot.style.display = 'none'; // Hide dot on errors
+        };
+
+        socket.onclose = () => {
+            appendMessage("status", "⛔ Disconnected from backend WebSocket");
+            gazeDot.style.display = 'none'; // Hide dot on disconnection
+        };
+    </script>
+</body>
+</html>

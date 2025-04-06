@@ -11,7 +11,6 @@ class GetUserPoints(APIView):
     def get(self, request):
         user_points, created = UserPoints.objects.get_or_create(user=request.user)
         return Response({
-            "success": True, 
             "total_points": user_points.total_points,
             "badges": user_points.badges,
         })
