@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { toast } from "react-hot-toast";
 import { FaArrowLeft } from "react-icons/fa";
-
+import { useRouter } from "next/navigation";
 import ArticleContent from "./ArticleContent";
 import EyeTrackingCard from "./EyeTrackingCard";
 import ReadingCountdownCard from "./ReadingCountdownCard";
@@ -37,7 +37,11 @@ interface ArticleDetailProps {
   onBack: () => void;
 }
 
-const ArticleDetail: React.FC<ArticleDetailProps> = ({ articleId, article, onBack }) => {
+const ArticleDetail: React.FC<ArticleDetailProps> = ({
+  articleId,
+  article,
+  onBack,
+}) => {
   // UI States
   const [isAltPerspectiveOpen, setAltPerspectiveOpen] = useState(false);
   const [isQuizUnlocked, setQuizUnlocked] = useState(false);
@@ -52,24 +56,43 @@ const ArticleDetail: React.FC<ArticleDetailProps> = ({ articleId, article, onBac
   const [altPointsAwarded, setAltPointsAwarded] = useState(false);
 
   // Eye tracking
-  const [eyeTrackingSessionId, setEyeTrackingSessionId] = useState<string | null>(null);
-  const [liveGaze, setLiveGaze] = useState<{ x: number; y: number } | null>(null);
-  const [trackingMethod, setTrackingMethod] = useState<"webcam" | "tobii">("webcam");
-
+  const [eyeTrackingSessionId, setEyeTrackingSessionId] = useState<
+    string | null
+  >(null);
+  const [liveGaze, setLiveGaze] = useState<{ x: number; y: number } | null>(
+    null
+  );
+  const [trackingMethod, setTrackingMethod] = useState<"webcam" | "tobii">(
+    "webcam"
+  );
+  
+  const router = useRouter();
   // Mutations
   const [addUserPoints] = useAddUserPointsMutation();
-  const [generateArticle, { isLoading: isGeneratingArticle }] = useGenerateArticleMutation();
-  const [generateAltPerspective, { isLoading: isGeneratingAlt }] = useGenerateAlternativePerspectiveMutation();
-  const [generateQuiz, { isLoading: isGeneratingQuiz }] = useGenerateQuizMutation();
+  const [generateArticle, { isLoading: isGeneratingArticle }] =
+    useGenerateArticleMutation();
+  const [generateAltPerspective, { isLoading: isGeneratingAlt }] =
+    useGenerateAlternativePerspectiveMutation();
+  const [generateQuiz, { isLoading: isGeneratingQuiz }] =
+    useGenerateQuizMutation();
 
-  const [startEyeTrackingSession, { isLoading: isStartingSession }] = useStartEyeTrackingSessionMutation();
-  const [stopEyeTrackingSession, { isLoading: isStoppingSession }] = useStopEyeTrackingSessionMutation();
+  const [startEyeTrackingSession, { isLoading: isStartingSession }] =
+    useStartEyeTrackingSessionMutation();
+  const [stopEyeTrackingSession, { isLoading: isStoppingSession }] =
+    useStopEyeTrackingSessionMutation();
 
   // Queries
-  const { data: alternativePerspective, isLoading: isAltLoading, refetch: refetchAltPerspective } =
-    useGetAlternativePerspectiveQuery(articleId, { skip: !articleId });
+  const {
+    data: alternativePerspective,
+    isLoading: isAltLoading,
+    refetch: refetchAltPerspective,
+  } = useGetAlternativePerspectiveQuery(articleId, { skip: !articleId });
 
-  const { data: quiz, isLoading: isQuizLoading, refetch: refetchQuiz } = useGetQuizQuery(articleId, {
+  const {
+    data: quiz,
+    isLoading: isQuizLoading,
+    refetch: refetchQuiz,
+  } = useGetQuizQuery(articleId, {
     skip: !isQuizUnlocked || !articleId,
   });
 
@@ -93,19 +116,22 @@ const ArticleDetail: React.FC<ArticleDetailProps> = ({ articleId, article, onBac
     if (!eyeTrackingSessionId) return;
     try {
       await stopEyeTrackingSession(eyeTrackingSessionId).unwrap();
-      setEyeTrackingSessionId(null);
       setLiveGaze(null);
+      setEyeTrackingSessionId(null); // <--- Make sure this is LAST so it triggers unmount
       toast.success("Eye tracking session stopped!");
+      // router.refresh();
+      console.log(eyeTrackingSessionId)
     } catch (err) {
       console.error("Error stopping eye tracking session:", err);
       toast.error("Failed to stop eye tracking session");
     }
   };
-
+  
   // Clean up
   useEffect(() => {
     return () => {
       if (eyeTrackingSessionId) stopEyeTrackingSession(eyeTrackingSessionId);
+     
     };
   }, [eyeTrackingSessionId, stopEyeTrackingSession]);
 
@@ -127,18 +153,18 @@ const ArticleDetail: React.FC<ArticleDetailProps> = ({ articleId, article, onBac
   useEffect(() => {
     if (!articlePointsAwarded || !articleId) return;
     addUserPoints({ action: "article_view", article_id: articleId })
-  .unwrap()
-  .then((res) => {
-    if (res.success) {
-      toast.success("+5 Points for reading!");
-      if (res.new_badges?.length > 0) {
-        toast.success(`New Badge: ${res.new_badges.join(", ")}`);
-      }
-    } else {
-      toast(res.message || "Points already awarded");
-    }
-  })
-  .catch(() => toast.error("Failed to update reading points."));
+      .unwrap()
+      .then((res) => {
+        if (res.success) {
+          toast.success("+5 Points for reading!");
+          if (res.new_badges?.length > 0) {
+            toast.success(`New Badge: ${res.new_badges.join(", ")}`);
+          }
+        } else {
+          toast(res.message || "Points already awarded");
+        }
+      })
+      .catch(() => toast.error("Failed to update reading points."));
   }, [articlePointsAwarded]);
 
   // Alternative Perspective
@@ -152,7 +178,9 @@ const ArticleDetail: React.FC<ArticleDetailProps> = ({ articleId, article, onBac
         await generateAltPerspective(articleId).unwrap();
         await refetchAltPerspective();
       } catch (err: any) {
-        toast.error(err?.data?.message || "Failed to generate alternative perspective");
+        toast.error(
+          err?.data?.message || "Failed to generate alternative perspective"
+        );
         return;
       }
     }
@@ -177,19 +205,18 @@ const ArticleDetail: React.FC<ArticleDetailProps> = ({ articleId, article, onBac
   useEffect(() => {
     if (!altPointsAwarded || !articleId) return;
     addUserPoints({ action: "alternative_click", article_id: articleId })
-    .unwrap()
-    .then((res) => {
-      if (res.success) {
-        toast.success("+10 Points for exploring different views!");
-        if (res?.new_badges?.length > 0) {
-          toast.success(`New Badge: ${res.new_badges.join(", ")}`);
+      .unwrap()
+      .then((res) => {
+        if (res.success) {
+          toast.success("+10 Points for exploring different views!");
+          if (res?.new_badges?.length > 0) {
+            toast.success(`New Badge: ${res.new_badges.join(", ")}`);
+          }
+        } else {
+          toast(res.message || "Points already awarded");
         }
-      } else {
-        toast(res.message || "Points already awarded");
-      }
-    })
-    .catch(() => toast.error("Failed to update alt perspective points."));
-  
+      })
+      .catch(() => toast.error("Failed to update alt perspective points."));
   }, [altPointsAwarded]);
 
   const handleCompleteAlternativePerspective = () => setQuizUnlocked(true);
@@ -211,19 +238,18 @@ const ArticleDetail: React.FC<ArticleDetailProps> = ({ articleId, article, onBac
     }
     setQuizOpen(true);
     addUserPoints({ action: "quiz_attempt", article_id: articleId })
-  .unwrap()
-  .then((res) => {
-    if (res.success) {
-      toast.success("+15 Points for attempting the quiz!");
-      if (res?.new_badges?.length > 0) {
-        toast.success(`New Badge: ${res.new_badges.join(", ")}`);
-      }
-    } else {
-      toast(res.message || "Points already awarded");
-    }
-  })
-  .catch(() => toast.error("Failed to award quiz attempt points."));
-
+      .unwrap()
+      .then((res) => {
+        if (res.success) {
+          toast.success("+15 Points for attempting the quiz!");
+          if (res?.new_badges?.length > 0) {
+            toast.success(`New Badge: ${res.new_badges.join(", ")}`);
+          }
+        } else {
+          toast(res.message || "Points already awarded");
+        }
+      })
+      .catch(() => toast.error("Failed to award quiz attempt points."));
   };
 
   return (
@@ -289,20 +315,25 @@ const ArticleDetail: React.FC<ArticleDetailProps> = ({ articleId, article, onBac
         />
       </div>
 
-      {/* Overlays and Trackers */}
-      <LiveGazeOverlay gaze={liveGaze} />
-      <EyeTrackingSocketListener
-        onGazeData={(data) => setLiveGaze({ x: data.gaze_x, y: data.gaze_y })}
-      />
-     {trackingMethod === "webcam" && eyeTrackingSessionId && (
-  <WebcamGazeTracker
-    isActive={!!eyeTrackingSessionId}
-    sessionId={eyeTrackingSessionId}
-    onGazeData={(data) => {
-      setLiveGaze({ x: data.x, y: data.y }); // 👈 Adds dot from webcam
-    }}
-  />
-)}
+      {/* Gaze Overlay */}
+      {liveGaze && <LiveGazeOverlay gaze={liveGaze} />}
+
+      {/* EyeTrackingSocketListener only if Tobii */}
+      {trackingMethod === "tobii" && (
+        <EyeTrackingSocketListener
+          onGazeData={(data) => setLiveGaze({ x: data.gaze_x, y: data.gaze_y })}
+        />
+      )}
+
+      {/* Webcam Tracker (includes alert listener internally) */}
+      {trackingMethod === "webcam" && eyeTrackingSessionId && (
+        <WebcamGazeTracker
+        key={eyeTrackingSessionId || "none"}
+          isActive={!!eyeTrackingSessionId}
+          sessionId={eyeTrackingSessionId}
+          onGazeData={(data) => setLiveGaze({ x: data.x, y: data.y })}
+        />
+      )}
 
       {/* Modals */}
       <AlternativePerspectiveModal
@@ -311,7 +342,11 @@ const ArticleDetail: React.FC<ArticleDetailProps> = ({ articleId, article, onBac
         alternative={alternativePerspective}
         onComplete={handleCompleteAlternativePerspective}
       />
-      <QuizModal isOpen={isQuizOpen} onClose={() => setQuizOpen(false)} quiz={quiz} />
+      <QuizModal
+        isOpen={isQuizOpen}
+        onClose={() => setQuizOpen(false)}
+        quiz={quiz}
+      />
     </motion.div>
   );
 };
