@@ -142,6 +142,8 @@ const WebcamGazeTracker: React.FC<WebcamGazeTrackerProps> = ({
       faceLandmarkerRef.current.close();
       console.log("🧹 FaceLandmarker closed.");
     }
+    
+
   };
 
   // Gaze WebSocket connection
@@ -181,7 +183,7 @@ const WebcamGazeTracker: React.FC<WebcamGazeTrackerProps> = ({
     <div style={{ display: "none" }}>
       {isActive && (
         <>
-          <video ref={videoRef} playsInline muted />
+          <video ref={videoRef} playsInline muted id="webcam-video" />
           <canvas ref={canvasRef} />
         </>
       )}
