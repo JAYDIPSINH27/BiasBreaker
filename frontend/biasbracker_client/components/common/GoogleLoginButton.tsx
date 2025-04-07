@@ -12,7 +12,7 @@ interface GoogleLoginButtonProps {
 
 const GoogleLoginButton = ({ text = "Continue with Google" }: GoogleLoginButtonProps) => {
   const [isRedirecting, setIsRedirecting] = useState(false);
-  const redirectUri = "http://localhost:3000/auth/google"; // Ensure this matches your backend setup
+  const redirectUri = `${process.env.NEXT_PUBLIC_HOST}/auth/google`; // Ensure this matches your backend setup
 
   const { data: googleAuthData } = useGetGoogleAuthURLQuery(redirectUri, { skip: isRedirecting });
 

@@ -25,11 +25,53 @@ const WebcamGazeTracker: React.FC<WebcamGazeTrackerProps> = ({
   const faceLandmarkerRef = useRef<FaceLandmarker | null>(null);
   const rafId = useRef<number>();
   const [isReady, setIsReady] = useState(false);
+  const isCameraStarted = useRef(false);
 
   const MODEL_URL =
     "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task";
   const WASM_PATH =
     "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.3/wasm";
+
+  // Log props and key state for debugging.
+  useEffect(() => {
+    console.log("WebcamGazeTracker props:", { sessionId, isActive });
+    console.log("Internal state:", { isReady, isCameraStarted: isCameraStarted.current });
+  }, [sessionId, isActive, isReady]);
+
+  // Ensure camera stops on page unload
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      stopCamera();
+    };
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, []);
+
+  // Always stop the camera when the component unmounts.
+  useEffect(() => {
+    return () => {
+      stopCamera();
+    };
+  }, []);
+
+  // Initialization: run only once on mount.
+  useEffect(() => {
+    init();
+  }, []);
+
+  // If isActive becomes false, stop the camera.
+  useEffect(() => {
+    if (!isActive) {
+      stopCamera();
+    }
+  }, [isActive]);
+
+  // When both isActive and isReady are true, start the camera if not already started.
+  useEffect(() => {
+    if (isActive && isReady && !isCameraStarted.current) {
+      startCamera();
+    }
+  }, [isActive, isReady]);
 
   const sendGazeToBackend = (x: number, y: number) => {
     const socket = socketRef.current;
@@ -59,7 +101,10 @@ const WebcamGazeTracker: React.FC<WebcamGazeTrackerProps> = ({
     const drawingUtils = new DrawingUtils(ctx);
 
     const detect = () => {
-      const results = faceLandmarkerRef.current!.detectForVideo(video, performance.now());
+      const results = faceLandmarkerRef.current!.detectForVideo(
+        video,
+        performance.now()
+      );
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
       if (results?.faceLandmarks?.[0]) {
@@ -78,7 +123,6 @@ const WebcamGazeTracker: React.FC<WebcamGazeTrackerProps> = ({
           sendGazeToBackend(gazeX, gazeY);
         }
       }
-
       rafId.current = requestAnimationFrame(detect);
     };
 
@@ -104,13 +148,28 @@ const WebcamGazeTracker: React.FC<WebcamGazeTrackerProps> = ({
   };
 
   const startCamera = async () => {
+    if (isCameraStarted.current) {
+      console.log("Camera already started, skipping startCamera.");
+      return;
+    }
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ video: true });
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
-        await videoRef.current.play();
-        console.log("🎥 Webcam started.");
-        runDetectionLoop();
+        // Clear any previous onloadedmetadata handler.
+        videoRef.current.onloadedmetadata = null;
+        videoRef.current.onloadedmetadata = () => {
+          videoRef.current
+            .play()
+            .then(() => {
+              isCameraStarted.current = true;
+              console.log("🎥 Webcam started.");
+              runDetectionLoop();
+            })
+            .catch((err) => {
+              console.error("❌ Error during video play:", err);
+            });
+        };
       }
     } catch (err) {
       console.error("❌ Webcam access error:", err);
@@ -119,34 +178,29 @@ const WebcamGazeTracker: React.FC<WebcamGazeTrackerProps> = ({
 
   const stopCamera = () => {
     console.log("🛑 stopCamera triggered");
-
-    // Stop all tracks from MediaStream
+    if (videoRef.current) {
+      videoRef.current.onloadedmetadata = null;
+    }
     const video = videoRef.current;
     if (video?.srcObject) {
       const stream = video.srcObject as MediaStream;
-      stream.getTracks().forEach((track) => {
-        track.stop();
-      });
+      stream.getTracks().forEach((track) => track.stop());
       video.srcObject = null;
-      video.removeAttribute("src");
-      video.load();
-      console.log("🛑 MediaStream tracks stopped and video reset.");
+      console.log("🛑 MediaStream tracks stopped.");
     }
-
     if (rafId.current) {
       cancelAnimationFrame(rafId.current);
       console.log("🛑 Animation frame stopped.");
     }
-
     if (faceLandmarkerRef.current) {
       faceLandmarkerRef.current.close();
+      faceLandmarkerRef.current = null;
       console.log("🧹 FaceLandmarker closed.");
     }
-    
-
+    isCameraStarted.current = false;
   };
 
-  // Gaze WebSocket connection
+  // WebSocket effect with a readyState check in cleanup.
   useEffect(() => {
     if (!sessionId) return;
     const socket = new WebSocket(`${process.env.NEXT_PUBLIC_HOST_WS}/ws/gaze-collector/`);
@@ -157,27 +211,17 @@ const WebcamGazeTracker: React.FC<WebcamGazeTrackerProps> = ({
     socket.onclose = () => console.log("🔌 [GazeCollectorSocket] Closed");
 
     return () => {
-      socket.close();
+      if (socket.readyState === WebSocket.CONNECTING) {
+        socket.addEventListener("open", () => socket.close());
+      } else {
+        socket.close();
+      }
       socketRef.current = null;
       console.log("🔌 [GazeCollectorSocket] Closed (cleanup)");
     };
   }, [sessionId]);
 
   useEyeTrackingSocket(); // Shared alerts
-
-  // Init / stop depending on activity
-  useEffect(() => {
-    if (isActive) init();
-    else stopCamera();
-
-    return () => {
-      stopCamera();
-    };
-  }, [isActive]);
-
-  useEffect(() => {
-    if (isActive && isReady) startCamera();
-  }, [isReady, isActive]);
 
   return (
     <div style={{ display: "none" }}>
