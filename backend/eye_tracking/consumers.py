@@ -1,6 +1,7 @@
 import logging
 import time
 import random
+import math  # Added for NaN checks
 from channels.generic.websocket import AsyncJsonWebsocketConsumer
 from channels.db import database_sync_to_async
 from .models import EyeTrackingSession, GazeData
@@ -38,6 +39,7 @@ class EyeTrackingConsumer(AsyncJsonWebsocketConsumer):
     async def eye_alert(self, event):
         await self.send_json({"type": "eye.alert", "message": event["message"]})
 
+
 class GazeCollectorConsumer(AsyncJsonWebsocketConsumer):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -62,8 +64,14 @@ class GazeCollectorConsumer(AsyncJsonWebsocketConsumer):
         pupil_diameter = payload.get("pupil_diameter", 0.0)
         source = payload.get("source", "unknown")
 
-        if gaze_x is None or gaze_y is None:
-            logger.warning("❗ Invalid gaze data received: missing gaze_x or gaze_y.")
+        # Check for invalid gaze data: missing or NaN values
+        if (
+            gaze_x is None or 
+            gaze_y is None or 
+            (isinstance(gaze_x, float) and math.isnan(gaze_x)) or 
+            (isinstance(gaze_y, float) and math.isnan(gaze_y))
+        ):
+            logger.warning("❗ Invalid gaze data received: gaze_x or gaze_y is None or NaN.")
             return
 
         logger.info(f"📡 Received gaze data from '{source}': (x={gaze_x}, y={gaze_y}, pupil={pupil_diameter})")
