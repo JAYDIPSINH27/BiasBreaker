@@ -1,0 +1,66 @@
+version: '3.9'
+
+services:
+  # db:
+  #   image: postgres:14
+  #   container_name: biasbreaker-db
+  #   restart: always
+  #   environment:
+  #     POSTGRES_USER: biasbreaker_user
+  #     POSTGRES_PASSWORD: biasbreaker_pass
+  #     POSTGRES_DB: biasbreaker_db
+  #   volumes:
+  #     - pgdata:/var/lib/postgresql/data
+  #   networks:
+  #     - biasbreaker-network
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: biasbreaker-backend
+    ports:
+      - "8000:8000"
+    environment:
+      - DEVELOPMENT_MODE=${DEVELOPMENT_MODE}
+      - DJANGO_SECERET_KEY=${DJANGO_SECERET_KEY}
+      - DEBUG=${DEBUG}
+      - AWS_SES_ACCESS_KEY_ID=${AWS_SES_ACCESS_KEY_ID}
+      - AWS_SES_SECRET_ACCESS_KEY=${AWS_SES_SECRET_ACCESS_KEY}
+      - AWS_SES_REGION_NAME=${AWS_SES_REGION_NAME}
+      - AWS_SES_FROM_EMAIL=${AWS_SES_FROM_EMAIL}
+      - DOMAIN=${DOMAIN}
+      - AUTH_COOKIE_SECURE=${AUTH_COOKIE_SECURE}
+      - EMAIL_HOST_PASSWORD=${EMAIL_HOST_PASSWORD}
+      - EMAIL_HOST_USER=${EMAIL_HOST_USER}
+      - REDIRECT_URIS=${REDIRECT_URIS}
+      - GOOGLE_OAUTH2_KEY=${GOOGLE_OAUTH2_KEY}
+      - GOOGLE_OAUTH2_SECRET=${GOOGLE_OAUTH2_SECRET}
+      - HUGGINGFACE_TOKEN=${HUGGINGFACE_TOKEN}
+      - GEMINI_TOKEN=${GEMINI_TOKEN}
+    # depends_on:
+    #   - db
+    networks:
+      - biasbreaker-network
+
+  frontend:
+    build:
+      context: ./frontend/biasbracker_client
+      dockerfile: Dockerfile
+    container_name: biasbreaker-frontend
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_HOST=${NEXT_PUBLIC_HOST}
+      - NEXT_PUBLIC_HOST_WS=${NEXT_PUBLIC_HOST_WS}
+    depends_on:
+      - backend
+    networks:
+      - biasbreaker-network
+
+# volumes:
+#   pgdata:
+
+networks:
+  biasbreaker-network:
+    driver: bridge

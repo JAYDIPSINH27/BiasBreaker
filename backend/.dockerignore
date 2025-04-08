@@ -1,0 +1,37 @@
+# Bytecode and caches
+**/__pycache__
+**/*.pyc
+**/*.pyo
+**/*.pyd
+
+# Distribution artifacts
+*.egg-info
+build
+dist
+
+# Virtual environments (if created locally)
+venv
+env
+.venv
+ENV
+
+# IDE directories and files
+.vscode
+.idea
+
+# OS-specific files
+.DS_Store
+Thumbs.db
+
+# Version control
+.git
+.gitignore
+
+# Local settings (if you use a local_settings.py that should not be copied)
+local_settings.py
+
+# Log files
+*.log
+
+# Temporary files
+*.swp

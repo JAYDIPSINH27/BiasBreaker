@@ -6,7 +6,7 @@ import threading
 import time
 import tobii_research as tr
 
-WS_URL = "ws://localhost:8000/ws/gaze-collector/"
+WS_URL = "wss://biasbreaker-a2l8.onrender.com"
 
 
 class BiasBreakerApp:
