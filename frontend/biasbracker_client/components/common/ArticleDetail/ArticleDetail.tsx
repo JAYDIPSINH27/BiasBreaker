@@ -179,12 +179,18 @@ const ArticleDetail: React.FC<ArticleDetailProps> = ({ articleId, article, onBac
   const handleStopEyeTracking = useCallback(async () => {
     if (!eyeTrackingSessionId) return;
     const currentSessionId = eyeTrackingSessionId; // preserve current session id for logging
+  
     try {
       await stopEyeTrackingSession(currentSessionId).unwrap();
       setLiveGaze(null);
       setEyeTrackingSessionId(null);
       toast.success("Eye tracking session stopped!");
-      console.log(currentSessionId);
+  
+      // Manual refresh after successful stop
+      setTimeout(() => {
+        window.location.reload();
+      }, 1000); // Delay to ensure state updates & toast shows
+  
     } catch (err) {
       console.error("Error stopping eye tracking session:", err);
       toast.error("Failed to stop eye tracking session");

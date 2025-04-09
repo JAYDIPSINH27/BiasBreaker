@@ -249,7 +249,7 @@ AUTH_COOKIE_SECURE = getenv("AUTH_COOKIE_SECURE", "True") == "True"
 # AUTH_COOKIE_SECURE = False
 AUTH_COOKIE_HTTP_ONLY = True
 AUTH_COOKIE_PATH = '/'
-AUTH_COOKIE_SAMESITE = 'None'
+AUTH_COOKIE_SAMESITE = 'Lax'
 
 
 SOCIAL_AUTH_GOOGLE_OAUTH2_KEY = getenv('GOOGLE_OAUTH2_KEY')
@@ -270,12 +270,12 @@ SOCIAL_AUTH_GOOGLE_OAUTH2_EXTRA_DATA = ['first_name', 'last_name']
 
 
 # CORS_ALLOWED_ORIGINS = getenv("CORS_ALLOWED_ORIGINS", "http://localhost:3000,http://127.0.0.1:3000").split(",")
-CORS_ALLOWED_ORIGINS = [
-    "http://localhost:3000",
-    "http://127.0.0.1:3000",
-    "https://biasbreaker-1.onrender.com"
-]
-
+# CORS_ALLOWED_ORIGINS = [
+#     "http://localhost:3000",
+#     "http://127.0.0.1:3000",
+#     "https://biasbreaker-1.onrender.com"
+# ]
+CORS_ALLOWED_ORIGINS= getenv('CORS_ALLOWED_ORIGINS').split(",")
 
 CORS_ALLOW_CREDENTIALS = True
 

@@ -14,6 +14,8 @@ venv
 env
 .venv
 ENV
+.env
+.env.local
 
 # IDE directories and files
 .vscode
