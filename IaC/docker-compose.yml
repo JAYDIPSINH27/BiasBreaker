@@ -51,6 +51,7 @@ services:
       args:
         NEXT_PUBLIC_HOST: ${NEXT_PUBLIC_HOST}
         NEXT_PUBLIC_HOST_WS: ${NEXT_PUBLIC_HOST_WS}
+        NEXT_PUBLIC_HOST_FRONTEND: ${NEXT_PUBLIC_HOST_FRONTEND}
     # image: frontend-test
     container_name: biasbreaker-frontend
     ports:

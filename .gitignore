@@ -1,7 +1,7 @@
 # Backend Django
-backend/.env.local
+backend/.env*
 backend/**/__pycache__
-frontend/**/.env.local
+frontend/**/.env
 backend/venv310
 backend/venv
 # Logs
