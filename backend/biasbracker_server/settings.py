@@ -38,7 +38,7 @@ SECRET_KEY = getenv("DJANGO_SECRET_KEY", get_random_secret_key())
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = getenv("DEBUG", "False") == "True"
 
-ALLOWED_HOSTS = getenv("DJANGO_ALLOWED_HOSTS", "127.0.0.1,localhost,biasbreaker-a2l8.onrender.com").split(",")
+ALLOWED_HOSTS = getenv("DJANGO_ALLOWED_HOSTS", "127.0.0.1,localhost,biasbreaker-a2l8.onrender.com,persuasive.research.cs.dal.ca").split(",")
 
 
 # Application definition
