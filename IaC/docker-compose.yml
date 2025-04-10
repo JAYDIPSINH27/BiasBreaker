@@ -1,16 +1,16 @@
 services:
-  # db:
-  #   image: postgres:14
-  #   container_name: biasbreaker-db
-  #   restart: always
-  #   environment:
-  #     POSTGRES_USER: biasbreaker_user
-  #     POSTGRES_PASSWORD: biasbreaker_pass
-  #     POSTGRES_DB: biasbreaker_db
-  #   volumes:
-  #     - pgdata:/var/lib/postgresql/data
-  #   networks:
-  #     - biasbreaker-network
+  db:
+    image: postgres:14
+    container_name: biasbreaker-db
+    restart: always
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    networks:
+      - biasbreaker-network
  
   backend:
     build:
@@ -38,8 +38,9 @@ services:
       - HUGGINGFACE_TOKEN=${HUGGINGFACE_TOKEN}
       - GEMINI_TOKEN=${GEMINI_TOKEN}
       - CORS_ALLOWED_ORIGINS=${CORS_ALLOWED_ORIGINS}
-    # depends_on:
-    #   - db
+      - DATABASE_URL=${DATABASE_URL}
+    depends_on:
+      - db
     networks:
       - biasbreaker-network
  
@@ -59,8 +60,8 @@ services:
     networks:
       - biasbreaker-network
  
-# volumes:
-#   pgdata:
+volumes:
+  pgdata:
  
 networks:
   biasbreaker-network:

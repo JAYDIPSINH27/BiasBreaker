@@ -178,29 +178,29 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.1/howto/static-files/
 
-if DEVELOPMENT_MODE is True:
-    STATIC_URL = 'static/'
-    STATIC_ROOT = BASE_DIR / 'static'
-    MEDIA_URL = '/media/'
-    MEDIA_ROOT = BASE_DIR / 'media'
-else:
-    AWS_S3_ACCESS_KEY_ID = getenv('AWS_S3_ACCESS_KEY_ID')
-    AWS_S3_SECRET_ACCESS_KEY = getenv('AWS_S3_SECRET_ACCESS_KEY')
-    AWS_S3_REGION_NAME = getenv('AWS_S3_REGION_NAME')
-    AWS_S3_ENDPOINT_URL = f'https://s3.{AWS_S3_REGION_NAME}.amazonaws.com'
-    AWS_STORAGE_BUCKET_NAME = getenv('AWS_STORAGE_BUCKET_NAME')
-    AWS_S3_OBJECT_PARAMETERS = {
-        'CacheControl': 'max-age=86400',
-    }
-    AWS_DEFAULT_ACL = 'public-read'
-    AWS_LOCATION = 'static'
-    AWS_MEDIA_LOCATION = 'media'
-    AWS_S3_CUSTOM_DOMAIN = getenv('AWS_S3_CUSTOM_DOMAIN')
-    STORAGES={
-        'default': {"BACKEND":"storages.backends.s3boto3.S3Boto3Storage"},
-        'staticfiles': {"BACKEND":"storages.backends.s3boto3.S3Boto3Storage"},
+# if DEVELOPMENT_MODE is True:
+STATIC_URL = 'static/'
+STATIC_ROOT = BASE_DIR / 'static'
+MEDIA_URL = '/media/'
+MEDIA_ROOT = BASE_DIR / 'media'
+# else:
+#     AWS_S3_ACCESS_KEY_ID = getenv('AWS_S3_ACCESS_KEY_ID')
+#     AWS_S3_SECRET_ACCESS_KEY = getenv('AWS_S3_SECRET_ACCESS_KEY')
+#     AWS_S3_REGION_NAME = getenv('AWS_S3_REGION_NAME')
+#     AWS_S3_ENDPOINT_URL = f'https://s3.{AWS_S3_REGION_NAME}.amazonaws.com'
+#     AWS_STORAGE_BUCKET_NAME = getenv('AWS_STORAGE_BUCKET_NAME')
+#     AWS_S3_OBJECT_PARAMETERS = {
+#         'CacheControl': 'max-age=86400',
+#     }
+#     AWS_DEFAULT_ACL = 'public-read'
+#     AWS_LOCATION = 'static'
+#     AWS_MEDIA_LOCATION = 'media'
+#     AWS_S3_CUSTOM_DOMAIN = getenv('AWS_S3_CUSTOM_DOMAIN')
+#     STORAGES={
+#         'default': {"BACKEND":"storages.backends.s3boto3.S3Boto3Storage"},
+#         'staticfiles': {"BACKEND":"storages.backends.s3boto3.S3Boto3Storage"},
 
-    }
+#     }
 
 AUTHENTICATION_BACKENDS = [
     'social_core.backends.google.GoogleOAuth2',
@@ -227,7 +227,9 @@ DJOSER = {
     'USER_CREATE_PASSWORD_RETYPE': True,
     'PASSWORD_RESET_CONFIRM_RETYPE': True,
     'TOKEN_MODEL': None,
-    'SOCIAL_AUTH_ALLOWED_REDIRECT_URIS': getenv('REDIRECT_URIS').split(",")
+    'SOCIAL_AUTH_ALLOWED_REDIRECT_URIS': [
+        uri.strip() for uri in getenv('REDIRECT_URIS', '').split(",") if uri.strip()
+    ]
 }
 
 SIMPLE_JWT = {

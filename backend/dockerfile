@@ -24,4 +24,4 @@ EXPOSE 9987
  
 # Run the application using gunicorn.
 # Replace "myproject" with your Django project name.
-CMD ["uvicorn", "biasbracker_server.asgi:application", "--host", "0.0.0.0", "--port", "9987"]
+CMD sh -c "python manage.py migrate && uvicorn biasbracker_server.asgi:application --host 0.0.0.0 --port 9987"
