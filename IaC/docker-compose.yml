@@ -60,9 +60,38 @@ services:
       - backend
     networks:
       - biasbreaker-network
- 
+
+  nginx:
+    image: nginx:alpine
+    container_name: biasbreaker-nginx
+    depends_on:
+      - frontend
+    volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      # Shared volume for certificates (populated by Certbot)
+      - letsencrypt:/etc/letsencrypt
+      # Mount the webroot for the ACME challenge
+      - ./certbot/www:/var/www/certbot
+    ports:
+      - "80:80"
+      - "443:443"
+    networks:
+      - biasbreaker-network
+
+  certbot:
+    image: certbot/certbot
+    container_name: biasbreaker-certbot
+    volumes:
+      - letsencrypt:/etc/letsencrypt
+      - ./certbot/www:/var/www/certbot
+    command: certonly --webroot --webroot-path=/var/www/certbot --email biasbreaker.team@gmail.com --agree-tos --no-eff-email -d persuasive.research.cs.dal.ca
+
 volumes:
   pgdata:
+  letsencrypt:
+ 
+# volumes:
+#   pgdata:
  
 networks:
   biasbreaker-network:
