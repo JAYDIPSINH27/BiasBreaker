@@ -13,7 +13,7 @@ logger = logging.getLogger("django")
 GAZE_HISTORY_SIZE = 10
 FIXATION_THRESHOLD = 40  # pixels
 LOST_FOCUS_THRESHOLD = 3  # seconds
-ALERT_COOLDOWN = 10  # seconds
+ALERT_COOLDOWN = 4  # seconds
 
 ALERT_MESSAGES = [
     "Not fully engaged? Check out an alternative perspective for fresh insights!",
