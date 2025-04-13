@@ -104,10 +104,20 @@ class CustomTokenVerifyView(TokenVerifyView):
         return super().post(request,*args,**kwargs)
 
 class LogoutView(APIView):
-    def post(self,request, *args,**kwargs):
+    def post(self, request, *args, **kwargs):
         response = Response(status=status.HTTP_204_NO_CONTENT)
-        response.delete_cookie('access', path=settings.AUTH_COOKIE_PATH)
-        response.delete_cookie('refresh', path=settings.AUTH_COOKIE_PATH)
-
+        response.delete_cookie(
+            'access',
+            path=settings.AUTH_COOKIE_PATH,
+            domain=getattr(settings, "AUTH_COOKIE_DOMAIN", None),
+            samesite=settings.AUTH_COOKIE_SAMESITE,
+        )
+        response.delete_cookie(
+            'refresh',
+            path=settings.AUTH_COOKIE_PATH,
+            domain=getattr(settings, "AUTH_COOKIE_DOMAIN", None),
+            samesite=settings.AUTH_COOKIE_SAMESITE,
+        )
         return response
+
         
