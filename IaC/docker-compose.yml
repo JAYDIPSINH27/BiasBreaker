@@ -1,3 +1,5 @@
+version: "3.8"
+
 services:
   db:
     image: postgres:14
@@ -7,7 +9,6 @@ services:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: ${POSTGRES_DB}
-    # Ensure the permissions on /home/jaydipsinh/docker/pgdata allow Postgres to read/write.
     volumes:
       - /home/jaydipsinh/docker/pgdata:/var/lib/postgresql/data
     networks:
@@ -22,7 +23,7 @@ services:
       - "9987:9987"
     environment:
       - DEVELOPMENT_MODE=${DEVELOPMENT_MODE}
-      - DJANGO_SECRET_KEY=${DJANGO_SECRET_KEY}   # Fixed variable name
+      - DJANGO_SECRET_KEY=${DJANGO_SECRET_KEY}
       - DEBUG=${DEBUG}
       - AWS_SES_ACCESS_KEY_ID=${AWS_SES_ACCESS_KEY_ID}
       - AWS_SES_SECRET_ACCESS_KEY=${AWS_SES_SECRET_ACCESS_KEY}
@@ -46,7 +47,7 @@ services:
 
   frontend:
     build:
-      context: ../frontend/biasbracker_client   # Fixed path if it was a typo
+      context: ../frontend/biasbracker_client
       dockerfile: Dockerfile
       args:
         NEXT_PUBLIC_HOST: ${NEXT_PUBLIC_HOST}
@@ -60,35 +61,14 @@ services:
     networks:
       - biasbreaker-network
 
-  nginx:
-    image: nginx:alpine
-    container_name: biasbreaker-nginx
+  localtunnel:
+    image: node:16-alpine
+    container_name: biasbreaker-localtunnel
+    command: npx localtunnel --port 4987 --subdomain biasbreaker
     depends_on:
       - frontend
-    volumes:
-      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
-      # Mount the directory for certificates (read-only).
-      - /home/jaydipsinh/docker/letsencrypt:/etc/letsencrypt:ro
-      # Mount the webroot for the ACME challenge (read-only).
-      - /home/jaydipsinh/docker/certbot/www:/var/www/certbot:ro
-    ports:
-      - "80:80"
-      - "443:443"
     networks:
       - biasbreaker-network
-
-  certbot:
-    image: certbot/certbot
-    container_name: biasbreaker-certbot
-    volumes:
-      - /home/jaydipsinh/docker/letsencrypt:/etc/letsencrypt
-      - /home/jaydipsinh/docker/certbot/www:/var/www/certbot
-    command: >
-      certonly --webroot
-      --webroot-path=/var/www/certbot
-      --email biasbreaker.team@gmail.com
-      --agree-tos --no-eff-email
-      -d persuasive.research.cs.dal.ca
 
 networks:
   biasbreaker-network:
