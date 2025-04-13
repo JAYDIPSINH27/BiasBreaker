@@ -1,16 +1,18 @@
 "use client";
-
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { toast } from "react-hot-toast";
 
-export function useEyeTrackingSocket(
-  onGazeData?: (data: { gaze_x: number; gaze_y: number }) => void
-) {
-  useEffect(() => {
+export function useEyeTrackingSocket(onGazeData) {
+  const socketRef = useRef(null);
+  const reconnectDelay = 3000; // milliseconds before attempting reconnect
+
+  const connectSocket = () => {
     const socket = new WebSocket(`${process.env.NEXT_PUBLIC_HOST_WS}/ws/eye-tracking/`);
+    socketRef.current = socket;
 
     socket.onopen = () => {
-      console.log("✅ [Shared EyeTrackingSocket] Connected");
+      console.log("✅ [EyeTrackingSocket] Connected");
+      // toast.success("Connected to eye tracking server!");
     };
 
     socket.onmessage = (event) => {
@@ -50,14 +52,25 @@ export function useEyeTrackingSocket(
 
     socket.onerror = (err) => {
       console.error("❌ [EyeTrackingSocket] Error:", err);
+      // toast.error("Socket encountered an error.");
     };
 
-    socket.onclose = () => {
-      console.log("🔌 [EyeTrackingSocket] Closed");
+    socket.onclose = (event) => {
+      console.log("🔌 [EyeTrackingSocket] Closed", event);
+      // toast.error("Socket connection closed. Reconnecting...");
+      // Attempt to reconnect after a delay
+      setTimeout(() => {
+        connectSocket();
+      }, reconnectDelay);
     };
+  };
 
+  useEffect(() => {
+    connectSocket();
     return () => {
-      socket.close();
+      if (socketRef.current) {
+        socketRef.current.close();
+      }
     };
   }, [onGazeData]);
 }
