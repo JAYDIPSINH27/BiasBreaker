@@ -1,5 +1,3 @@
-version: "3.8"
-
 services:
   db:
     image: postgres:14
@@ -61,14 +59,14 @@ services:
     networks:
       - biasbreaker-network
 
-  localtunnel:
-    image: node:16-alpine
-    container_name: biasbreaker-localtunnel
-    command: npx localtunnel --port 4987 --subdomain biasbreaker
-    depends_on:
-      - frontend
-    networks:
-      - biasbreaker-network
+  # localtunnel:
+  #   image: node:16-alpine
+  #   container_name: biasbreaker-localtunnel
+  #   command: npx localtunnel --port 4987 --subdomain biasbreaker
+  #   depends_on:
+  #     - frontend
+  #   networks:
+  #     - biasbreaker-network
 
 networks:
   biasbreaker-network:
