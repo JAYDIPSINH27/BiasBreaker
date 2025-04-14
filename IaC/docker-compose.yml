@@ -66,9 +66,9 @@ services:
     depends_on:
       - frontend
     volumes:
-      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf
       # Mount your self-signed certificates directory into the container
-      - /home/jaydipsinh/certificates/selfsigned:/etc/nginx/certs:ro
+      - /home/jaydipsinh/certificates/selfsigned:/etc/nginx/certs
     ports:
       - "80:80"
       - "443:443"
