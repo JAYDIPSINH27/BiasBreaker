@@ -67,28 +67,27 @@ services:
       - frontend
     volumes:
       - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
-      # Mount the directory for certificates (read-only).
-      - /home/jaydipsinh/docker/letsencrypt:/etc/letsencrypt:ro
-      # Mount the webroot for the ACME challenge (read-only).
-      - /home/jaydipsinh/docker/certbot/www:/var/www/certbot:ro
+      # Mount your self-signed certificates directory into the container
+      - /home/jaydipsinh/certificates/selfsigned:/etc/nginx/certs:ro
     ports:
       - "80:80"
       - "443:443"
     networks:
       - biasbreaker-network
 
-  certbot:
-    image: certbot/certbot
-    container_name: biasbreaker-certbot
-    volumes:
-      - /home/jaydipsinh/docker/letsencrypt:/etc/letsencrypt
-      - /home/jaydipsinh/docker/certbot/www:/var/www/certbot
-    command: >
-      certonly --webroot
-      --webroot-path=/var/www/certbot
-      --email biasbreaker.team@gmail.com
-      --agree-tos --no-eff-email
-      -d persuasive.research.cs.dal.ca
+
+  # certbot:
+  #   image: certbot/certbot
+  #   container_name: biasbreaker-certbot
+  #   volumes:
+  #     - /home/jaydipsinh/docker/letsencrypt:/etc/letsencrypt
+  #     - /home/jaydipsinh/docker/certbot/www:/var/www/certbot
+  #   command: >
+  #     certonly --webroot
+  #     --webroot-path=/var/www/certbot
+  #     --email biasbreaker.team@gmail.com
+  #     --agree-tos --no-eff-email
+  #     -d persuasive.research.cs.dal.ca
 
 networks:
   biasbreaker-network:
