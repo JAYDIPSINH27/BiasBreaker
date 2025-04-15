@@ -7,7 +7,7 @@ import threading
 import time
 import queue
 
-WS_URL = "wss://biasbreaker-a2l8.onrender.com/ws/gaze-collector/"
+WS_URL = "ws://localhost:8000/ws/gaze-collector/"
 
 class SimulatedGazeSenderApp:
     def __init__(self, master):

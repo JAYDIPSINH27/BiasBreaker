@@ -97,10 +97,11 @@ WSGI_APPLICATION = 'biasbracker_server.wsgi.application'
 ASGI_APPLICATION = 'biasbracker_server.asgi.application'
 
 CHANNEL_LAYERS = {
-    'default': {
-        'BACKEND': 'channels.layers.InMemoryChannelLayer',
+    "default": {
+        "BACKEND": "channels.layers.InMemoryChannelLayer",
     },
 }
+
 
 
 # Database

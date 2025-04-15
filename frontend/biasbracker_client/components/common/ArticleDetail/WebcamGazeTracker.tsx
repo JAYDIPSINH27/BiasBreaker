@@ -32,13 +32,16 @@ const WebcamGazeTracker: React.FC<WebcamGazeTrackerProps> = ({
   const WASM_PATH =
     "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.3/wasm";
 
-  // Log props and key state for debugging.
+  // Debug logging for props and key state.
   useEffect(() => {
     console.log("WebcamGazeTracker props:", { sessionId, isActive });
-    console.log("Internal state:", { isReady, isCameraStarted: isCameraStarted.current });
+    console.log("Internal state:", {
+      isReady,
+      isCameraStarted: isCameraStarted.current,
+    });
   }, [sessionId, isActive, isReady]);
 
-  // Ensure camera stops on page unload
+  // Ensure camera stops on page unload.
   useEffect(() => {
     const handleBeforeUnload = () => {
       stopCamera();
@@ -108,16 +111,53 @@ const WebcamGazeTracker: React.FC<WebcamGazeTrackerProps> = ({
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
       if (results?.faceLandmarks?.[0]) {
+        // Optional: draw the full face tessellation for debugging.
         drawingUtils.drawConnectors(
           results.faceLandmarks[0],
           FaceLandmarker.FACE_LANDMARKS_TESSELATION,
           { color: "#00FF00", lineWidth: 1 }
         );
 
-        const nose = results.faceLandmarks[0][1];
-        const gazeX = nose.x * window.innerWidth;
-        const gazeY = nose.y * window.innerHeight;
+        let gazeX: number;
+        let gazeY: number;
+        const landmarks = results.faceLandmarks[0];
 
+        // If iris landmarks are available (indices 468-477), compute average iris center.
+        if (landmarks.length >= 478) {
+          // Left iris indices (typical indexes 468-472)
+          const leftIrisIndices = [468, 469, 470, 471, 472];
+          let leftX = 0,
+            leftY = 0;
+          leftIrisIndices.forEach((i) => {
+            leftX += landmarks[i].x;
+            leftY += landmarks[i].y;
+          });
+          leftX /= leftIrisIndices.length;
+          leftY /= leftIrisIndices.length;
+
+          // Right iris indices (typical indexes 473-477)
+          const rightIrisIndices = [473, 474, 475, 476, 477];
+          let rightX = 0,
+            rightY = 0;
+          rightIrisIndices.forEach((i) => {
+            rightX += landmarks[i].x;
+            rightY += landmarks[i].y;
+          });
+          rightX /= rightIrisIndices.length;
+          rightY /= rightIrisIndices.length;
+
+          // Use the average of both iris centers as the gaze estimation.
+          const irisCenterX = (leftX + rightX) / 2;
+          const irisCenterY = (leftY + rightY) / 2;
+          gazeX = irisCenterX * window.innerWidth;
+          gazeY = irisCenterY * window.innerHeight;
+        } else {
+          // Fallback: use the nose (landmark index 1) if iris data isn't available.
+          gazeX = landmarks[1].x * window.innerWidth;
+          gazeY = landmarks[1].y * window.innerHeight;
+        }
+
+        // Ensure the values are numbers before updating.
         if (!isNaN(gazeX) && !isNaN(gazeY)) {
           onGazeData({ x: gazeX, y: gazeY });
           sendGazeToBackend(gazeX, gazeY);
@@ -221,7 +261,8 @@ const WebcamGazeTracker: React.FC<WebcamGazeTrackerProps> = ({
     };
   }, [sessionId]);
 
-  useEyeTrackingSocket(); // Shared alerts
+  // Shared alerts via your custom hook.
+  useEyeTrackingSocket();
 
   return (
     <div style={{ display: "none" }}>

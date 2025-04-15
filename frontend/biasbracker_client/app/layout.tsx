@@ -33,9 +33,15 @@ export default function RootLayout({
         <Provider>
           <Setup />
           <EyeTrackingSocketListener />
-          <Navbar />
-          <div>{children}</div>
-          <Footer />
+          {/* The flex container ensures the layout occupies full viewport height */}
+          <div className="flex flex-col min-h-screen">
+            <Navbar />
+            {/* Main content area grows to fill space */}
+            <main className="flex-grow container mx-auto px-4 py-8">
+              {children}
+            </main>
+            <Footer />
+          </div>
         </Provider>
       </body>
     </html>
