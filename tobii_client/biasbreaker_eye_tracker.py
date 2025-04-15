@@ -3,11 +3,11 @@ from tkinter import messagebox
 import websocket
 import json
 import threading
-import time
 import queue
+import time
 import tobii_research as tr
 
-WS_URL = "wss://biasbreaker-a2l8.onrender.com"
+WS_URL = "ws://localhost:8000/ws/gaze-collector/"
 
 class BiasBreakerApp:
     def __init__(self, master):
@@ -17,151 +17,115 @@ class BiasBreakerApp:
         master.configure(bg="#f7f9fc")
         master.resizable(False, False)
 
-        # === Title ===
-        tk.Label(master, text="BiasBreaker 👁️", font=("Helvetica", 22, "bold"), bg="#f7f9fc", fg="#212121").pack(pady=(25, 5))
-        tk.Label(master, text="Tobii Eye Tracker Companion", font=("Helvetica", 12), bg="#f7f9fc", fg="#607d8b").pack()
+        # GUI setup
+        tk.Label(master, text="BiasBreaker 👁️", font=("Helvetica", 22, "bold"), bg="#f7f9fc").pack(pady=(25, 5))
+        tk.Label(master, text="Tobii Eye Tracker Companion", font=("Helvetica", 12), bg="#f7f9fc").pack()
 
-        # === Tobii Status ===
-        self.tobii_status_label = tk.Label(master, text="🔍 Checking for Tobii device...", font=("Helvetica", 11), bg="#f7f9fc", fg="#546e7a")
+        self.tobii_status_label = tk.Label(master, text="🔍 Checking for Tobii device...", font=("Helvetica", 11), bg="#f7f9fc")
         self.tobii_status_label.pack(pady=(20, 10))
 
-        # === Session ID Entry ===
         session_frame = tk.Frame(master, bg="#f7f9fc")
-        session_frame.pack()
+        session_frame.pack(pady=10)
         tk.Label(session_frame, text="Session ID:", font=("Helvetica", 12), bg="#f7f9fc").pack(side=tk.LEFT, padx=(0, 10))
-        self.session_entry = tk.Entry(session_frame, font=("Helvetica", 12), width=30, bd=1, relief=tk.SOLID)
+        self.session_entry = tk.Entry(session_frame, font=("Helvetica", 12), width=30, relief=tk.SOLID)
         self.session_entry.pack(side=tk.LEFT)
 
-        # === Buttons ===
         button_frame = tk.Frame(master, bg="#f7f9fc")
-        button_frame.pack(pady=(25, 10))
-        self.start_btn = tk.Button(button_frame, text="🚀 Start Tracking", font=("Helvetica", 12), bg="#4caf50", fg="white", width=16,
-                                   relief="flat", command=self.start_tracking, cursor="hand2", activebackground="#43a047")
+        button_frame.pack(pady=(20, 10))
+        self.start_btn = tk.Button(button_frame, text="🚀 Start Tracking", font=("Helvetica", 12), bg="#4caf50", fg="white",
+                                   width=16, command=self.start_tracking)
         self.start_btn.pack(side=tk.LEFT, padx=10)
-        self.stop_btn = tk.Button(button_frame, text="🛑 Stop Tracking", font=("Helvetica", 12), bg="#f44336", fg="white", width=16,
-                                  relief="flat", command=self.stop_tracking, cursor="hand2", activebackground="#e53935", state=tk.DISABLED)
+        self.stop_btn = tk.Button(button_frame, text="🛑 Stop Tracking", font=("Helvetica", 12), bg="#f44336", fg="white",
+                                  width=16, command=self.stop_tracking, state=tk.DISABLED)
         self.stop_btn.pack(side=tk.LEFT, padx=10)
 
-        # === Status Labels ===
-        self.status_label = tk.Label(master, text="Status: Idle", font=("Helvetica", 11), bg="#f7f9fc", fg="#607d8b")
-        self.status_label.pack(pady=(10, 5))
-        self.gaze_label = tk.Label(master, text="👁️ Gaze: N/A  |  🎯 Pupil Diameter: N/A", font=("Helvetica", 11), bg="#f7f9fc", fg="#455a64")
+        self.status_label = tk.Label(master, text="Status: Idle", font=("Helvetica", 11), bg="#f7f9fc")
+        self.status_label.pack(pady=5)
+        self.gaze_label = tk.Label(master, text="👁️ Gaze: N/A | 🎯 Pupil Diameter: N/A", font=("Helvetica", 11), bg="#f7f9fc")
         self.gaze_label.pack()
 
-        # === Internal State ===
+        # Internal variables
         self.ws = None
-        self.eyetracker = None
-        self.running = False
+        self.ws_queue = queue.Queue()
+        self.ws_thread = None
+        self.ws_running = False
+        self.tracking = False
         self.session_id = ""
-        self.ws_queue = queue.Queue()  # Queue for outgoing WebSocket messages
-        self.ws_thread = None         # Dedicated thread for sending messages
-        self.ws_thread_running = False
+        self.eyetracker = None
+        self.last_emit_time = 0  # ✅ Proper placement of throttling variable
 
-        # Check for a connected Tobii device
         self.check_tobii()
+        master.protocol("WM_DELETE_WINDOW", self.on_close)
 
     def check_tobii(self):
-        eyetrackers = tr.find_all_eyetrackers()
-        if eyetrackers:
-            self.eyetracker = eyetrackers[0]
-            info = f"✅ Found Tobii Device: {self.eyetracker.model} @ {self.eyetracker.address}"
+        trackers = tr.find_all_eyetrackers()
+        if trackers:
+            self.eyetracker = trackers[0]
+            info = f"✅ Tobii Device: {self.eyetracker.model}"
             self.tobii_status_label.config(text=info, fg="#388e3c")
             self.start_btn.config(state=tk.NORMAL)
         else:
-            self.eyetracker = None
-            self.tobii_status_label.config(text="❌ No Tobii device detected. Connect & restart.", fg="#c62828")
+            self.tobii_status_label.config(text="❌ No Tobii device found.", fg="#c62828")
             self.start_btn.config(state=tk.DISABLED)
 
     def start_tracking(self):
         self.session_id = self.session_entry.get().strip()
         if not self.session_id:
-            messagebox.showerror("⚠️ Error", "Please enter a valid session ID.")
+            messagebox.showerror("⚠️ Error", "Enter a valid session ID.")
             return
 
         try:
             self.ws = websocket.create_connection(WS_URL)
         except Exception as e:
-            messagebox.showerror("❌ WebSocket Error", f"Could not connect to backend.\n\n{e}")
+            messagebox.showerror("❌ WebSocket Error", str(e))
             return
 
-        self.running = True
-        self.status_label.config(text=f"✅ Tracking: Session '{self.session_id}'", fg="#2e7d32")
-        self.start_btn.config(state=tk.DISABLED)
-        self.stop_btn.config(state=tk.NORMAL)
-
-        # Start the WebSocket sender thread
-        self.ws_thread_running = True
+        self.ws_running = True
         self.ws_thread = threading.Thread(target=self.ws_sender, daemon=True)
         self.ws_thread.start()
 
-        threading.Thread(target=self.subscribe_tobii, daemon=True).start()
-
-    def ws_sender(self):
-        # Dedicated loop for sending queued messages over WebSocket
-        while self.ws_thread_running:
-            try:
-                message = self.ws_queue.get(timeout=0.1)
-                try:
-                    self.ws.send(message)
-                    print(f"Sent: {message}")
-                except websocket.WebSocketConnectionClosedException:
-                    print("WebSocket closed. Attempting reconnect...")
-                    try:
-                        self.ws = websocket.create_connection(WS_URL)
-                        self.ws.send(message)
-                    except Exception as e:
-                        print(f"Reconnect failed: {e}")
-                except Exception as e:
-                    print(f"Send error: {e}")
-            except queue.Empty:
-                continue
-
-    def subscribe_tobii(self):
         try:
             self.eyetracker.subscribe_to(
-                tr.EYETRACKER_GAZE_DATA,
-                lambda data: self.gaze_callback(data),
-                as_dictionary=True
+                tr.EYETRACKER_GAZE_DATA, self.gaze_callback, as_dictionary=True
             )
         except Exception as e:
-            print(f"Tobii subscribe error: {e}")
-            messagebox.showerror("❌ Tobii Error", f"Error subscribing to Tobii data.\n\n{e}")
+            messagebox.showerror("❌ Tobii Error", str(e))
             self.stop_tracking()
+            return
 
-    def stop_tracking(self):
-        self.running = False
-        self.ws_thread_running = False
-        try:
-            if self.eyetracker:
-                self.eyetracker.unsubscribe_from(tr.EYETRACKER_GAZE_DATA, self.gaze_callback)
-        except Exception as e:
-            print(f"Unsubscribe error: {e}")
+        self.tracking = True
+        self.status_label.config(text=f"✅ Tracking session '{self.session_id}'", fg="#388e3c")
+        self.start_btn.config(state=tk.DISABLED)
+        self.stop_btn.config(state=tk.NORMAL)
 
-        if self.ws:
+    def ws_sender(self):
+        while self.ws_running:
             try:
-                self.ws.close()
+                message = self.ws_queue.get(timeout=0.1)
+                self.ws.send(message)
+            except queue.Empty:
+                continue
             except Exception as e:
-                print(f"WebSocket close error: {e}")
-            self.ws = None
-
-        self.status_label.config(text="⛔️ Tracking stopped", fg="#b71c1c")
-        self.gaze_label.config(text="👁️ Gaze: N/A  |  🎯 Pupil Diameter: N/A")
-        self.start_btn.config(state=tk.NORMAL)
-        self.stop_btn.config(state=tk.DISABLED)
+                print(f"WS Send Error: {e}")
 
     def gaze_callback(self, gaze_data):
-        if not self.running:
+        if not self.tracking:
             return
+
+        now = time.time()
+        if now - self.last_emit_time < 0.05:  # 50ms throttle
+            return
+        self.last_emit_time = now
 
         left_gaze = gaze_data.get('left_gaze_point_on_display_area')
         pupil = gaze_data.get('left_pupil_diameter')
 
-        if left_gaze and None not in left_gaze and pupil is not None:
+        if left_gaze and pupil and None not in left_gaze:
             x = round(left_gaze[0] * 1920, 2)
             y = round(left_gaze[1] * 1080, 2)
-            self.gaze_label.config(text=f"👁️ Gaze: ({x}, {y})  |  🎯 Pupil Diameter: {round(pupil, 2)}")
 
-            payload = {
+            self.gaze_label.config(text=f"👁️ Gaze: ({x}, {y}) | 🎯 Pupil Diameter: {round(pupil,2)}")
+            payload = json.dumps({
                 "type": "eye.data",
                 "payload": {
                     "session_id": self.session_id,
@@ -170,10 +134,33 @@ class BiasBreakerApp:
                     "pupil_diameter": pupil,
                     "source": "tobii"
                 }
-            }
-            message = json.dumps(payload)
-            # Enqueue the message so the WS sender thread sends it asynchronously
-            self.ws_queue.put(message)
+            })
+            self.ws_queue.put(payload)
+
+    def stop_tracking(self):
+        self.tracking = False
+        if self.eyetracker:
+            try:
+                self.eyetracker.unsubscribe_from(tr.EYETRACKER_GAZE_DATA, self.gaze_callback)
+            except Exception as e:
+                print(f"Tobii unsubscribe error: {e}")
+
+        self.ws_running = False
+        if self.ws:
+            try:
+                self.ws.close()
+            except Exception as e:
+                print(f"WebSocket close error: {e}")
+
+        self.status_label.config(text="⛔️ Tracking stopped", fg="#c62828")
+        self.gaze_label.config(text="👁️ Gaze: N/A | 🎯 Pupil Diameter: N/A")
+        self.start_btn.config(state=tk.NORMAL)
+        self.stop_btn.config(state=tk.DISABLED)
+
+    def on_close(self):
+        if self.tracking:
+            self.stop_tracking()
+        self.master.destroy()
 
 if __name__ == "__main__":
     root = tk.Tk()
