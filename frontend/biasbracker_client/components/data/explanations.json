@@ -1,0 +1,86 @@
+{
+    "perspectives": {
+      "Neutral": "Presents information in an even‑handed way, avoiding emotional or persuasive language.",
+      "Optimistic": "Emphasizes positive outcomes and potential gains, possibly downplaying challenges or risks.",
+      "Critical": "Focuses on shortcomings, pitfalls, or negative evidence, which can highlight problems but may underrepresent positives.",
+      "Innovative": "Highlights novel approaches and creative solutions, which can inspire but may gloss over feasibility issues.",
+      "Ethical": "Frames issues in terms of right and wrong, moral duties, or societal impact."
+    },
+    "biases": {
+      "Confirmation Bias": "The tendency to search for, interpret, or recall information that confirms one’s preexisting beliefs.",
+      "Anchoring Bias": "Relying too heavily on the first piece of information encountered when making decisions.",
+      "Availability Bias": "Overestimating the importance of information that comes easily to mind (e.g., recent or vivid examples).",
+      "Framing Effect": "Reacting differently to the same information depending on how it’s presented (positive vs. negative framing).",
+      "Overconfidence Bias": "Having excessive faith in one’s own answers or judgments, even if they’re incorrect.",
+      "Bandwagon Effect": "Doing or believing things because many other people do, regardless of one’s own beliefs.",
+      "Sunk Cost Fallacy": "Continuing an endeavor because of previously invested resources (time, money), even if it’s failing.",
+      "Hindsight Bias": "Seeing events as having been predictable after they have already occurred.",
+      "Self-Serving Bias": "Attributing successes to internal factors and failures to external factors.",
+      "Fundamental Attribution Error": "Overemphasizing personality-based explanations for others’ behavior and underemphasizing situational factors.",
+      "Halo Effect": "Letting one positive trait (e.g., attractiveness) influence overall judgment of a person or idea.",
+      "In-group Bias": "Favoring members of one’s own group over outsiders.",
+      "Out-group Homogeneity Bias": "Perceiving members of another group as more similar to each other than they really are.",
+      "Optimism Bias": "Believing that one is less likely to experience negative events compared to others.",
+      "Status Quo Bias": "Preferring things to stay the same rather than change.",
+      "Dunning-Kruger Effect": "People with low ability at a task overestimate their ability.",
+      "Illusory Superiority": "Overestimating one’s desirable qualities and underestimating undesirable qualities compared to others.",
+      "Gambler's Fallacy": "Believing that past random events affect the probabilities of future random events.",
+      "False Consensus Effect": "Overestimating how much others share one’s own beliefs and behaviors.",
+      "Choice-supportive Bias": "Remembering one’s choices as better than they actually were.",
+      "Projection Bias": "Assuming that others share one’s own current feelings, thoughts, and preferences.",
+      "Recency Bias": "Overweighting recent experiences or information when making decisions.",
+      "Belief Bias": "Judging the strength of an argument based on the believability of its conclusion rather than its logic.",
+      "Authority Bias": "Attributing greater accuracy to the opinion of an authority figure (unrelated to its content).",
+      "Clustering Illusion": "Seeing patterns where none exist in random data.",
+      "Contrast Effect": "Perceiving things differently when compared side‑by‑side rather than in isolation.",
+      "Curse of Knowledge": "When well‑informed people find it difficult to think about problems from the perspective of lesser‑informed people.",
+      "Endowment Effect": "Valuing something more highly simply because one owns it.",
+      "Focusing Effect": "Placing too much importance on one aspect of an event when predicting future feelings.",
+      "Just-World Hypothesis": "Believing that the world is fair and people get what they deserve.",
+      "Planning Fallacy": "Underestimating how long it will take to complete tasks, even when one has experience.",
+      "Survivorship Bias": "Concentrating on the people or things that ‘survived’ some process and overlooking those that did not.",
+      "Ostrich Effect": "Ignoring dangerous or negative information by ‘burying one’s head in the sand.’",
+      "Placebo Effect": "Experiencing a perceived improvement after receiving a treatment with no therapeutic value.",
+      "Pessimism Bias": "Overestimating the likelihood of negative outcomes.",
+      "Pro-innovation Bias": "Overvaluing the usefulness of an innovation, ignoring its limitations.",
+      "Reactance": "Doing the opposite of what one is told in order to preserve one’s sense of freedom.",
+      "Reciprocity Bias": "Feeling obliged to return a favor, even if the initial favor was unsolicited.",
+      "Salience Bias": "Focusing on the most noticeable (salient) features of a situation.",
+      "Selective Perception": "Filtering information based on one’s own expectations or beliefs.",
+      "Semmelweis Reflex": "Rejecting new evidence or knowledge because it contradicts established norms.",
+      "Social Desirability Bias": "Responding in a way that will be viewed favorably by others.",
+      "Zero-risk Bias": "Preferring to eliminate a small risk entirely rather than reduce a larger risk."
+    },
+    "warnings": {
+      "genai": "This content was generated by an AI model; cross‑check facts with reliable sources.",
+      "misinformation": "Some claims here lack credible sourcing and may be speculative."
+    },
+    "transparency": {
+      "recommendation": "This recommendation is based on your recent readings to show a contrasting viewpoint."
+    },
+    "sources": {
+      "default": "No explicit sources were cited. Always verify important facts against primary references."
+    },
+    "confidence": {
+      "default": "Model confidence: 78%. Lower confidence may indicate higher risk of inaccuracies."
+    },
+    "counterfactual": {
+      "default": "What if the opposite happened? E.g., imagine policy failure instead of success."
+    },
+    "definitions": {
+      "AI": "Artificial Intelligence: systems that simulate human intelligence processes."
+    },
+    "sentiment": {
+      "default": "Overall tone: neutral."
+    },
+    "reading_level": {
+      "default": "Flesch–Kincaid Grade Level: 10 (suitable for 15–16 year olds)."
+    },
+    "critical_questions": {
+      "default": "What key assumptions underlie this argument?"
+    },
+    "ethics": {
+      "default": "Consider the social and moral implications of these claims."
+    }
+  }
+  
