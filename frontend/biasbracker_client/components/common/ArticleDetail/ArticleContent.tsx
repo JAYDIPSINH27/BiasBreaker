@@ -85,16 +85,7 @@ const ArticleContent: React.FC<ArticleContentProps> = ({
             </span>
           </div>
 
-          {/* Misinformation alert (if flagged) */}
-          {article.misinformation_flag && (
-            <div className="mt-2 text-xs text-red-800 bg-red-100 p-2 rounded flex items-center">
-              <ExplainabilityInfo
-                category="warnings"
-                keyName="misinformation"
-              />
-              <span className="ml-2">Potential misinformation detected.</span>
-            </div>
-          )}
+          
         </>
       )}
     </div>

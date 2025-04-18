@@ -1,88 +1,147 @@
 "use client";
 
-import { useLogoutMutation, useRetrieveUserQuery } from "@/redux/features/authApiSlice";
-import { useRouter, usePathname } from "next/navigation";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useRouter, usePathname } from "next/navigation";
 import { useDispatch } from "react-redux";
+import { useLogoutMutation, useRetrieveUserQuery } from "@/redux/features/authApiSlice";
 import { logout as logoutAction } from "@/redux/features/authSlice";
 import { apiSlice } from "@/redux/services/apiSlice";
+import {
+  FaHome,
+  FaUser,
+  FaSignOutAlt,
+  FaSignInAlt,
+  FaUserPlus,
+  FaBars,
+  FaTimes
+} from "react-icons/fa";
 
-// Define User Type
 interface User {
   first_name: string;
   last_name: string;
   email: string;
 }
 
-const Navbar = () => {
+const Navbar: React.FC = () => {
   const router = useRouter();
-  const pathname = usePathname(); // Detect page changes
+  const pathname = usePathname();
   const dispatch = useDispatch();
 
   const { data: user, refetch } = useRetrieveUserQuery();
   const [logout] = useLogoutMutation();
   const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [menuOpen, setMenuOpen] = useState(false);
 
-  // Sync user state immediately when user data updates
+  // Sync user state
   useEffect(() => {
     setCurrentUser(user || null);
   }, [user]);
 
-  // Refetch user data when navigating to a new page
+  // Refetch on route change, close menu
   useEffect(() => {
     refetch();
+    setMenuOpen(false);
   }, [pathname, refetch]);
 
   const handleLogout = async () => {
     try {
-      await logout().unwrap();                         // Call logout API
-      dispatch(logoutAction());                        // Reset auth state
-      dispatch(apiSlice.util.resetApiState());         // Clear all API cache
-      setCurrentUser(null);                            // Clear local state
-      router.push("/auth/login");                      // Redirect
-    } catch (error) {
-      console.error("Logout failed:", error);
+      await logout().unwrap();
+      dispatch(logoutAction());
+      dispatch(apiSlice.util.resetApiState());
+      setCurrentUser(null);
+      router.push("/auth/login");
+    } catch (err) {
+      console.error("Logout failed:", err);
     }
   };
 
   return (
-    <nav className="w-full bg-white shadow-md fixed top-0 left-0 z-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex justify-between items-center h-16">
+    <nav className="fixed top-0 w-full bg-white shadow-md z-50">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between h-16">
         {/* Logo */}
-        <Link href={currentUser ? "/dashboard" : "/"} className="text-lg font-bold text-gray-900">
-          BiasBreaker
+        <Link href={currentUser ? "/dashboard" : "/"} className="flex items-center space-x-2">
+          <FaHome className="text-blue-600 text-2xl" />
+          <span className="text-xl font-bold text-gray-800">BiasBreaker</span>
         </Link>
 
-        {/* Navigation Links */}
-        <div className="hidden md:flex items-center space-x-6">
+        {/* Desktop Links */}
+        <div className="hidden md:flex items-center space-x-4">
           {currentUser ? (
             <>
-              <Link href="/profile">
-                <span className="text-gray-800 font-medium">
-                  Welcome, {currentUser.first_name}
-                </span>
+              <Link href="/profile" className="flex items-center px-3 py-2 hover:bg-gray-100 rounded-lg transition">
+                <FaUser className="mr-2 text-gray-600" />
+                <span className="text-gray-800">Hi, {currentUser.first_name}</span>
               </Link>
               <button
                 onClick={handleLogout}
-                className="px-4 py-2 text-gray-700 hover:text-red-600 transition duration-200"
+                className="flex items-center px-3 py-2 hover:bg-red-100 rounded-lg transition"
               >
-                Logout
+                <FaSignOutAlt className="mr-2 text-red-600" />
+                <span className="text-red-600">Logout</span>
+              </button>
+            </>
+          ) : (
+            <>
+              <Link href="/auth/login" className="flex items-center px-3 py-2 hover:bg-gray-100 rounded-lg transition">
+                <FaSignInAlt className="mr-2 text-green-600" />
+                <span className="text-gray-800">Login</span>
+              </Link>
+              <Link
+                href="/auth/register"
+                className="flex items-center px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-500 transition"
+              >
+                <FaUserPlus className="mr-2" />
+                <span>Register</span>
+              </Link>
+            </>
+          )}
+        </div>
+
+        {/* Mobile Menu Button */}
+        <button
+          onClick={() => setMenuOpen(open => !open)}
+          className="md:hidden text-gray-700 hover:text-gray-900 focus:outline-none"
+        >
+          {menuOpen ? <FaTimes size={24} /> : <FaBars size={24} />}
+        </button>
+      </div>
+
+      {/* Mobile Menu */}
+      <div className={`md:hidden bg-white border-t ${menuOpen ? 'block' : 'hidden'}`}>
+        <div className="px-4 pt-4 pb-2 space-y-1">
+          {currentUser ? (
+            <>
+              <Link
+                href="/profile"
+                className="flex items-center px-3 py-2 hover:bg-gray-100 rounded-lg transition"
+              >
+                <FaUser className="mr-2 text-gray-600" />
+                <span className="text-gray-800">Hi, {currentUser.first_name}</span>
+              </Link>
+              <button
+                onClick={handleLogout}
+                className="w-full text-left flex items-center px-3 py-2 hover:bg-red-100 rounded-lg transition"
+              >
+                <FaSignOutAlt className="mr-2 text-red-600" />
+                <span className="text-red-600">Logout</span>
               </button>
             </>
           ) : (
             <>
               <Link
                 href="/auth/login"
-                className="px-4 py-2 text-gray-700 hover:text-indigo-600 transition duration-200"
+                className="flex items-center px-3 py-2 hover:bg-gray-100 rounded-lg transition"
               >
-                Login
+                <FaSignInAlt className="mr-2 text-green-600" />
+                <span className="text-gray-800">Login</span>
               </Link>
               <Link
                 href="/auth/register"
-                className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-500 transition duration-200"
+                className="flex items-center px-3 py-2 hover:bg-gray-100 rounded-lg transition"
               >
-                Register
+                <FaUserPlus className="mr-2 text-blue-600" />
+                <span className="text-gray-800">Register</span>
               </Link>
             </>
           )}
