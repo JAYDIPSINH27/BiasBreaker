@@ -53,21 +53,25 @@ export default function LandingPage() {
 
         {/* Illustration */}
         <motion.div
-          initial={{ opacity: 0, scale: 0.8 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.8, ease: "easeOut" }}
-          className="md:w-1/2 flex justify-center"
-        >
-          <div className="w-64 h-64 relative max-w-md">
-            <Image
-              src="/assets/Hero_Gif.gif"
-              alt="BiasBreaker AI"
-              fill
-              className=" rounded-xl shadow-2xl"
-              priority
-            />
-          </div>
-        </motion.div>
+  initial={{ opacity: 0, scale: 0.9 }}
+  animate={{ opacity: 1, scale: 1 }}
+  transition={{ duration: 0.6, ease: "easeOut" }}
+  className="w-full max-w-3xl mx-auto"
+>
+  <div className="relative w-full h-48 md:h-64 overflow-hidden rounded-xl shadow-lg group">
+    {/* Gradient accent background */}
+    <div className="absolute inset-0 bg-gradient-to-br from-blue-200 to-blue-400 rounded-xl transform scale-105 group-hover:scale-110 transition-transform duration-700 blur-xl -z-10" />
+
+    {/* Hero GIF */}
+    <Image
+      src="/assets/Hero_Gif.gif"
+      alt="BiasBreaker AI"
+      fill
+      className="object-cover w-full h-full transition-transform duration-700 group-hover:scale-105"
+      priority
+    />
+  </div>
+</motion.div>
       </motion.div>
     </main>
   );
