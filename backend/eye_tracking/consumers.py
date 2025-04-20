@@ -10,9 +10,9 @@ from .models import EyeTrackingSession, GazeData
 logger = logging.getLogger("django")
 
 GAZE_HISTORY_SIZE = 50
-FIXATION_THRESHOLD = 40
+FIXATION_THRESHOLD = 80
 LOST_FOCUS_THRESHOLD = 3
-ALERT_COOLDOWN = 4
+ALERT_COOLDOWN = 7
 
 ALERT_MESSAGES = [
     "Not fully engaged? Take a moment to refocus and see new opportunities!",
