@@ -7,7 +7,7 @@ import queue
 import time
 import tobii_research as tr
 
-WS_URL = "ws://localhost:8000/ws/gaze-collector/"
+WS_URL = "ws://persuasive.research.cs.dal.ca:9987//ws/gaze-collector/"
 
 class BiasBreakerApp:
     def __init__(self, master):
