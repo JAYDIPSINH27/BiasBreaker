@@ -201,7 +201,7 @@ const ProfilePage: React.FC = () => {
         </div>
 
                 {/* Analytics Metrics Grid */}
-                <div className="px-6 py-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div className="px-6 py-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         <MetricCard icon={<FaBook />} label="Articles Read" value={total_articles_read} hint="Total number of articles you've read." />
           <MetricCard icon={<FaTags />} label="Alt. Perspectives" value={total_alternative_views} hint="Count of alternative viewpoints you've explored." />
           <MetricCard icon={<FaClipboard />} label="Quizzes Done" value={total_quizzes_completed} hint="Number of quizzes attempted after reading articles." />
@@ -216,24 +216,6 @@ const ProfilePage: React.FC = () => {
           <MetricCard icon={<FaBook />} label="Latest Topic" value={latest_read_topic} hint="Topic of the most recently read article." />
         </div>
 
-        {/* Quote Section */}
-        <div className="px-6 pb-12">
-          <div className="bg-gradient-to-r from-purple-100 to-pink-100 p-6 rounded-2xl shadow-inner flex items-start gap-4">
-            <FaQuoteLeft className="text-3xl text-purple-400 mt-1" />
-            <div className="flex-1">
-              <motion.p className="italic text-gray-700" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 1 }}>{`“${quote.text}”`}</motion.p>
-              <motion.p className="mt-2 text-right font-semibold text-gray-600" initial={{ x: 20 }} animate={{ x: 0 }} transition={{ delay: 0.5 }}>— {quote.author}</motion.p>
-            </div>
-            <motion.button
-              onClick={() => setQuote(QUOTES[Math.floor(Math.random() * QUOTES.length)])}
-              className="text-gray-600 hover:text-gray-800"
-              whileHover={{ rotate: 90 }}
-              transition={{ type: "spring", stiffness: 300 }}
-            >
-              <FaRedo />
-            </motion.button>
-          </div>
-        </div>
 
 
       </div>
