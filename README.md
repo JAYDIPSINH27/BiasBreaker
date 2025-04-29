@@ -46,7 +46,7 @@ In today's digital media landscape, recommendation algorithms and social media o
 
 ## About
 
-Confirmation bias in today’s digital media environment drives users into ideological echo chambers by constantly surfacing content that supports existing beliefs. **BiasBreaker** pairs user-selected topics with AI-generated contrasting perspectives, embeds gamified quizzes, and delivers real-time engagement nudges via eye-tracking, all aimed at broadening viewpoints and reinforcing critical thinking citeturn1file0.
+Confirmation bias in today’s digital media environment drives users into ideological echo chambers by constantly surfacing content that supports existing beliefs. **BiasBreaker** pairs user-selected topics with AI-generated contrasting perspectives, embeds gamified quizzes, and delivers real-time engagement nudges via eye-tracking, all aimed at broadening viewpoints and reinforcing critical thinking.
 
 ---
 
@@ -58,7 +58,7 @@ Confirmation bias in today’s digital media environment drives users into ideol
 
 - **Interactive Quizzes & Micro-Challenges**  
   - Comprehension quizzes after each article section  
-  - Points, badges, and progress tracking for motivation citeturn1file3  
+  - Points, badges, and progress tracking for motivation
 
 - **Gamification & Rewards**  
   - Badge engine for milestones (e.g., “First Alternative Read”, “Quiz Master”)  
@@ -66,7 +66,7 @@ Confirmation bias in today’s digital media environment drives users into ideol
 
 - **Real-Time Nudges**  
   - WebSocket-based focus alerts (“Great focus!” after 50s)  
-  - Distraction prompts (“Ready for a quick quiz?”) when gaze leaves content citeturn1file16  
+  - Distraction prompts (“Ready for a quick quiz?”) when gaze leaves content 
 
 - **Eye-Tracking Integration**  
   - **MediaPipe** webcam-based gaze estimation for browser  
@@ -121,7 +121,7 @@ Eye-Tracking Modules
 - npm or yarn  
 - Python ≥ v3.10  
 - pip & virtualenv  
-- [Tobii Eye Tracker 5](https://tobii.com/) (optional)  
+- [Tobii Eye Tracker 5](https://tobii.com/)  
 
 ### Installation
 
@@ -140,10 +140,9 @@ pip install -r requirements.txt
 
 # Migrate & seed DB
 python manage.py migrate
-python manage.py loaddata initial_data.json
 
 # Start server
-python manage.py runserver --settings=biasbracker_server.settings.development
+uvicorn biasbracker_server.asgi:application --reload
 ```
 
 #### Frontend
@@ -158,8 +157,8 @@ npm run dev
 #### Tracker (Optional)
 
 ```bash
-cd ../tracker
-python biasbreaker_tracker.py
+cd ../tobii_client
+python biasbreaker_eye_tracker.py
 ```
 
 ---
@@ -251,7 +250,7 @@ biasbreaker/
 
 ---
 
-## Continuous Integration & Testing
+## Continuous Integration & Testing (Future Scope)
 
 - **GitHub Actions** runs on each PR:
   - `flake8` for linting
