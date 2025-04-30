@@ -37,7 +37,7 @@ export default function RootLayout({
           <div className="flex flex-col min-h-screen">
             <Navbar />
             {/* Main content area grows to fill space */}
-            <main className="flex-grow container mx-auto px-4 py-8">
+            <main className="flex-grow container mx-auto">
               {children}
             </main>
             <Footer />

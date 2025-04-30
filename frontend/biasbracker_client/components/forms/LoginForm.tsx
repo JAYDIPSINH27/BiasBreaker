@@ -139,6 +139,12 @@ const LoginForm = () => {
               Sign Up here
             </Link>
           </p>
+          <p className="text-center text-sm text-gray-500 mt-4">
+            Forgot your password ?{" "}
+            <Link href="/password-reset" className="text-indigo-600 hover:underline">
+              Reset Password
+            </Link>
+          </p>
         </form>
       </motion.div>
     </div>

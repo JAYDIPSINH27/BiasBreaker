@@ -1,5 +1,6 @@
 import React from "react";
 import Spinner from "@/components/common/Spinner";
+import ExplainabilityInfo from "@/components/common/ExplainabilityInfo";
 
 interface ArticleContentProps {
   article: any;
@@ -13,7 +14,7 @@ const ArticleContent: React.FC<ArticleContentProps> = ({
   isGeneratingArticle,
 }) => {
   return (
-    <div className="w-3/4 bg-white shadow-lg rounded-lg p-6 md:p-8 flex flex-col max-h-full overflow-hidden relative">
+    <div className=" bg-white shadow-lg rounded-lg p-6 md:p-8 flex flex-col max-h-full overflow-hidden relative">
       {!article ? (
         <div className="flex flex-col items-center justify-center h-full">
           <p className="text-gray-500 mb-4">No article found!</p>
@@ -32,13 +33,27 @@ const ArticleContent: React.FC<ArticleContentProps> = ({
             <h1 className="text-2xl md:text-3xl font-bold text-gray-900 text-center">
               {article.title || "No Title Available"}
             </h1>
-            <p className="text-gray-500 text-xs text-center mt-1">
-              <span className="font-semibold">Perspective:</span>{" "}
-              {article.perspective || "Unknown"} |{" "}
-              <span className="font-semibold">Cognitive Bias:</span>{" "}
-              {article.cognitive_bias || "Unknown"} |{" "}
-              <span className="font-semibold">Word Count:</span>{" "}
-              {article.word_count || "N/A"}
+            <p className="text-gray-500 text-xs text-center mt-1 flex flex-wrap justify-center items-center gap-2">
+              <span className="font-semibold">Perspective:</span>
+              <span>{article.perspective || "Unknown"}</span>
+              <ExplainabilityInfo
+                category="perspectives"
+                keyName={article.perspective}
+              />
+
+              <span>|</span>
+
+              <span className="font-semibold">Cognitive Bias:</span>
+              <span>{article.cognitive_bias || "Unknown"}</span>
+              <ExplainabilityInfo
+                category="biases"
+                keyName={article.cognitive_bias}
+              />
+
+              <span>|</span>
+
+              <span className="font-semibold">Word Count:</span>
+              <span>{article.word_count || "N/A"}</span>
             </p>
           </header>
           {/* Body */}
@@ -62,6 +77,15 @@ const ArticleContent: React.FC<ArticleContentProps> = ({
               {article.content?.conclusion || "No conclusion available."}
             </p>
           </div>
+          {/* GenAI warning */}
+          <div className="mt-4 text-xs text-yellow-800 bg-yellow-100 p-2 rounded flex items-center">
+            <ExplainabilityInfo category="warnings" keyName="genai" />
+            <span className="ml-2">
+              AI‑generated content – verify critical facts.
+            </span>
+          </div>
+
+          
         </>
       )}
     </div>

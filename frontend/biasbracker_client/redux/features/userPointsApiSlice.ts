@@ -17,7 +17,11 @@ export const pointsApiSlice = apiSlice.injectEndpoints({
         body: { action, article_id },
       }),
     }),
+    getUserAnalyticsSummary: builder.query<any, void>({
+      query: () => "userpoints/summary/",
+    }),
+    
   }),
 });
 
-export const { useGetUserPointsQuery, useAddUserPointsMutation } = pointsApiSlice;
+export const { useGetUserPointsQuery, useAddUserPointsMutation,useGetUserAnalyticsSummaryQuery } = pointsApiSlice;

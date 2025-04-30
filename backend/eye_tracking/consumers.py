@@ -9,16 +9,24 @@ from .models import EyeTrackingSession, GazeData
 
 logger = logging.getLogger("django")
 
-GAZE_HISTORY_SIZE = 10
-FIXATION_THRESHOLD = 40
+GAZE_HISTORY_SIZE = 50
+FIXATION_THRESHOLD = 80
 LOST_FOCUS_THRESHOLD = 3
-ALERT_COOLDOWN = 4
+ALERT_COOLDOWN = 10
 
 ALERT_MESSAGES = [
-    "Not fully engaged? Take a moment to refocus and see new opportunities!",
-    "Your attention seems to drift—try exploring fresh insights!",
-    "Seems like you're looking away; re-engage for a deeper experience!",
+    "👀 Feeling distracted? Take a breath and dive back in for fresh discoveries!",
+    "✨ Your focus matters—re-center now to unlock new insights!",
+    "🔍 Drifted away? Re-engage to explore deeper perspectives!",
+    "🌟 Stay on track! Your next “aha!” moment is just a refocus away!",
+    "💡 Attention waning? Refocus to spark fresh ideas and keep momentum!",
+    "🎯 Keep your eyes on the prize—re-engage for your next breakthrough!",
+    "🚀 Ready for more? Reconnect and propel your learning forward!",
+    "📚 Don’t miss out—refocus now and uncover what’s next!",
+    "🔥 Rekindle your curiosity—look back to ignite new inspiration!",
+    "🎉 You’ve got this! A quick refocus can lead to big wins!",
 ]
+
 
 def choose_alert_message():
     return random.choice(ALERT_MESSAGES)

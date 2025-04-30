@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { motion } from "framer-motion";
 import { toast } from "react-hot-toast";
 import { FaArrowLeft } from "react-icons/fa";
@@ -24,7 +24,6 @@ import {
   useGenerateQuizMutation,
   useGetQuizQuery,
 } from "@/redux/features/articleApiSlice";
-
 import { useAddUserPointsMutation } from "@/redux/features/userPointsApiSlice";
 import {
   useStartEyeTrackingSessionMutation,
@@ -41,7 +40,6 @@ interface ArticleDetailProps {
  * Custom hook to handle a countdown timer.
  * @param initial - initial countdown value in seconds.
  * @param autoStart - if true, the countdown starts immediately.
- * @returns count, a boolean indicating if the countdown completed, and a function to start/reset the countdown.
  */
 function useCountdown(initial: number, autoStart = false) {
   const [count, setCount] = useState(initial);
@@ -50,18 +48,18 @@ function useCountdown(initial: number, autoStart = false) {
 
   useEffect(() => {
     if (!active) return;
-    const interval = setInterval(() => {
+    const iv = setInterval(() => {
       setCount((prev) => {
         if (prev <= 1) {
           setCompleted(true);
           setActive(false);
-          clearInterval(interval);
+          clearInterval(iv);
           return 0;
         }
         return prev - 1;
       });
     }, 1000);
-    return () => clearInterval(interval);
+    return () => clearInterval(iv);
   }, [active]);
 
   const start = useCallback(() => {
@@ -73,10 +71,23 @@ function useCountdown(initial: number, autoStart = false) {
   return { count, completed, start };
 }
 
-const ArticleDetail: React.FC<ArticleDetailProps> = ({ articleId, article, onBack }) => {
+const ArticleDetail: React.FC<ArticleDetailProps> = ({
+  articleId,
+  article,
+  onBack,
+}) => {
   const router = useRouter();
 
-  // UI states
+  // ----- mutable refs for focus/away logic -----
+  const readingStartRef = useRef<number | null>(null);
+  const awayToastShownRef = useRef(false);
+  const hasSuggestedAltRef = useRef(false);
+  const readCompleteRef = useRef(false);
+
+  // ----- DOM ref -----
+  const articleRef = useRef<HTMLDivElement>(null);
+
+  // ----- UI state -----
   const [isAltPerspectiveOpen, setAltPerspectiveOpen] = useState(false);
   const [isQuizUnlocked, setQuizUnlocked] = useState(false);
   const [isQuizOpen, setQuizOpen] = useState(false);
@@ -84,26 +95,26 @@ const ArticleDetail: React.FC<ArticleDetailProps> = ({ articleId, article, onBac
   const [liveGaze, setLiveGaze] = useState<{ x: number; y: number } | null>(null);
   const [trackingMethod, setTrackingMethod] = useState<"webcam" | "tobii">("webcam");
 
-  // Countdown hooks:
-  // For reading article points: start automatically when article and articleId exist.
+  // ----- countdowns -----
   const {
     count: articleCountdown,
     completed: articlePointsAwarded,
     start: startArticleCountdown,
   } = useCountdown(30, false);
 
-  // For alternative perspective points: start when the modal is opened.
-  const { count: altCountdown, completed: altPointsAwarded, start: startAltCountdown } =
-    useCountdown(15, false);
+  const {
+    count: altCountdown,
+    completed: altPointsAwarded,
+    start: startAltCountdown,
+  } = useCountdown(15, false);
 
-  // Mutations & Queries
+  // ----- API hooks -----
   const [addUserPoints] = useAddUserPointsMutation();
-  const [generateArticle, { isLoading: isGeneratingArticle }] = useGenerateArticleMutation();
+  const [generateArticle, { isLoading: isGeneratingArticle }] =
+    useGenerateArticleMutation();
   const [generateAltPerspective, { isLoading: isGeneratingAlt }] =
     useGenerateAlternativePerspectiveMutation();
   const [generateQuiz, { isLoading: isGeneratingQuiz }] = useGenerateQuizMutation();
-  const [startEyeTrackingSession, { isLoading: isStartingSession }] = useStartEyeTrackingSessionMutation();
-  const [stopEyeTrackingSession, { isLoading: isStoppingSession }] = useStopEyeTrackingSessionMutation();
 
   const {
     data: alternativePerspective,
@@ -111,18 +122,120 @@ const ArticleDetail: React.FC<ArticleDetailProps> = ({ articleId, article, onBac
     refetch: refetchAltPerspective,
   } = useGetAlternativePerspectiveQuery(articleId, { skip: !articleId });
 
-  const { data: quiz, isLoading: isQuizLoading, refetch: refetchQuiz } = useGetQuizQuery(articleId, {
-    skip: !isQuizUnlocked || !articleId,
-  });
+  const { data: quiz, isLoading: isQuizLoading, refetch: refetchQuiz } = useGetQuizQuery(
+    articleId,
+    { skip: !articleId }
+  );
 
-  // Automatically start reading countdown when article data is available.
+  const [startEyeTrackingSession, { isLoading: isStartingSession }] =
+    useStartEyeTrackingSessionMutation();
+  const [stopEyeTrackingSession, { isLoading: isStoppingSession }] =
+    useStopEyeTrackingSessionMutation();
+
+  // start reading countdown when article loads
   useEffect(() => {
     if (article && articleId) {
       startArticleCountdown();
     }
   }, [article, articleId, startArticleCountdown]);
 
-  // Award reading points once the countdown completes.
+  // ----- Imperative focus/away handler -----
+  const FOCUS_THRESHOLD_MS = 50000; // 5 seconds for testing
+
+const handleGazeData = useCallback(
+  (nx: number, ny: number) => {
+    console.log("raw gaze data:", nx, ny);
+    if (readCompleteRef.current) return;
+    if (!articleRef.current) return;
+
+    const rect = articleRef.current.getBoundingClientRect();
+
+    // handle both normalized [0..1] and pixel coords:
+    const gazeX = nx <= 1 ? nx * window.innerWidth : nx;
+    const gazeY = ny <= 1 ? ny * window.innerHeight : ny;
+    console.log("gaze px:", gazeX, gazeY, "rect:", rect);
+
+    const inside =
+      gazeX >= rect.left &&
+      gazeX <= rect.right &&
+      gazeY >= rect.top &&
+      gazeY <= rect.bottom;
+    console.log("inside?", inside);
+
+    if (inside) {
+      awayToastShownRef.current = false;
+
+      if (readingStartRef.current === null) {
+        readingStartRef.current = performance.now();
+      } else {
+        const elapsed = performance.now() - readingStartRef.current;
+        console.log("focus elapsed (ms):", elapsed);
+        if (!hasSuggestedAltRef.current && elapsed >= FOCUS_THRESHOLD_MS) {
+          // toast.success("👀 Great focus! Check out the alternative perspective now.");
+          toast.custom((t) => (
+            <div
+              style={{
+                position: "fixed",
+                top: "50%",
+                left: "50%",
+                transform: "translate(-50%, -50%)",
+                background: "#ff4d4f",
+                color: "white",
+                padding: "16px 24px",
+                borderRadius: "8px",
+                fontSize: "16px",
+                fontWeight: "bold",
+                zIndex: 9999,
+              }}
+              onClick={() => toast.dismiss(t.id)}
+            >
+              👀 Great focus! Check out the alternative perspective now.
+            </div>
+          ));
+          readCompleteRef.current = true; 
+          hasSuggestedAltRef.current = true;
+          // setAltPerspectiveOpen(true);
+          // setQuizUnlocked(false);
+          // startAltCountdown();
+          // (optional) reset your timer if you want repeated suggestions
+          // readingStartRef.current = performance.now();
+        }
+      }
+    } else {
+      if (!awayToastShownRef.current) {
+        // toast.error("👀 You are looking away!");
+        toast.custom((t) => (
+          <div
+            style={{
+              position: "fixed",
+              top: "50%",
+              left: "50%",
+              transform: "translate(-50%, -50%)",
+              background: "#ff4d4f",
+              color: "white",
+              padding: "16px 24px",
+              borderRadius: "8px",
+              fontSize: "16px",
+              fontWeight: "bold",
+              zIndex: 9999,
+            }}
+            onClick={() => toast.dismiss(t.id)}
+          >
+            👀 You are looking away! Focus on the article
+          </div>
+        ));
+        awayToastShownRef.current = true;
+      }
+      readingStartRef.current = null;
+      hasSuggestedAltRef.current = false;
+    }
+
+    setLiveGaze({ x: nx, y: ny });
+  },
+  [startAltCountdown]
+);
+
+  // award points after reading countdown
   useEffect(() => {
     if (articlePointsAwarded && articleId) {
       addUserPoints({ action: "article_view", article_id: articleId })
@@ -130,18 +243,16 @@ const ArticleDetail: React.FC<ArticleDetailProps> = ({ articleId, article, onBac
         .then((res) => {
           if (res.success) {
             toast.success("+5 Points for reading!");
-            if (res.new_badges?.length > 0) {
+            if (res.new_badges?.length) {
               toast.success(`New Badge: ${res.new_badges.join(", ")}`);
             }
-          } else {
-            toast(res.message || "Points already awarded");
           }
         })
         .catch(() => toast.error("Failed to update reading points."));
     }
   }, [articlePointsAwarded, articleId, addUserPoints]);
 
-  // Award alternative perspective points once the alt countdown completes.
+  // award points after alt-perspective countdown
   useEffect(() => {
     if (altPointsAwarded && articleId) {
       addUserPoints({ action: "alternative_click", article_id: articleId })
@@ -149,116 +260,97 @@ const ArticleDetail: React.FC<ArticleDetailProps> = ({ articleId, article, onBac
         .then((res) => {
           if (res.success) {
             toast.success("+10 Points for exploring different views!");
-            if (res.new_badges?.length > 0) {
+            if (res.new_badges?.length) {
               toast.success(`New Badge: ${res.new_badges.join(", ")}`);
             }
-          } else {
-            toast(res.message || "Points already awarded");
           }
         })
         .catch(() => toast.error("Failed to update alt perspective points."));
     }
   }, [altPointsAwarded, articleId, addUserPoints]);
 
-  // Eye tracking handlers
+  // start eye-tracking session
   const handleStartEyeTracking = useCallback(async () => {
     try {
-      const response = await startEyeTrackingSession().unwrap();
-      if (response?.session_id) {
-        setEyeTrackingSessionId(response.session_id);
-        toast.success("Eye tracking session started!");
-      } else {
-        toast.error("Could not start eye tracking session.");
-      }
-    } catch (err) {
-      console.error("Error starting eye tracking session:", err);
+      const { session_id } = await startEyeTrackingSession().unwrap();
+      setEyeTrackingSessionId(session_id);
+      toast.success("Eye tracking session started!");
+    } catch {
       toast.error("Failed to start eye tracking session");
     }
   }, [startEyeTrackingSession]);
 
+  // stop eye-tracking session
   const handleStopEyeTracking = useCallback(async () => {
     if (!eyeTrackingSessionId) return;
-    const currentSessionId = eyeTrackingSessionId; // preserve current session id for logging
-  
     try {
-      await stopEyeTrackingSession(currentSessionId).unwrap();
+      await stopEyeTrackingSession(eyeTrackingSessionId).unwrap();
       setLiveGaze(null);
       setEyeTrackingSessionId(null);
       toast.success("Eye tracking session stopped!");
-  
-      // Manual refresh after successful stop
-      setTimeout(() => {
-        window.location.reload();
-      }, 1000); // Delay to ensure state updates & toast shows
-  
-    } catch (err) {
-      console.error("Error stopping eye tracking session:", err);
+      // if(trackingMethod === "webcam"){
+
+        window.location.reload()
+      // }
+    } catch {
       toast.error("Failed to stop eye tracking session");
     }
   }, [eyeTrackingSessionId, stopEyeTrackingSession]);
 
-  // Cleanup eye tracking session on unmount.
+  // cleanup on unmount
   useEffect(() => {
     return () => {
-      if (eyeTrackingSessionId) stopEyeTrackingSession(eyeTrackingSessionId);
+      if (eyeTrackingSessionId) {
+        stopEyeTrackingSession(eyeTrackingSessionId).unwrap().catch(() => {});
+      }
     };
   }, [eyeTrackingSessionId, stopEyeTrackingSession]);
 
-  // Handle alternative perspective: generate data if needed and open modal.
+  // open alt-perspective manually if user clicks
   const handleOpenAltPerspective = useCallback(async () => {
-    if (!articleId) {
-      toast.error("No article to explore an alternative perspective.");
-      return;
-    }
+    if (!articleId) return toast.error("No article to explore an alternative perspective.");
     if (!alternativePerspective && !isAltLoading) {
-      try {
-        await generateAltPerspective(articleId).unwrap();
-        await refetchAltPerspective();
-      } catch (err: any) {
-        toast.error(err?.data?.message || "Failed to generate alternative perspective");
-        return;
-      }
+      await generateAltPerspective(articleId).unwrap();
+      await refetchAltPerspective();
     }
     setAltPerspectiveOpen(true);
-    if (!altPointsAwarded) {
-      startAltCountdown();
-    }
-  }, [articleId, alternativePerspective, isAltLoading, generateAltPerspective, refetchAltPerspective, altPointsAwarded, startAltCountdown]);
+    startAltCountdown();
+  }, [
+    articleId,
+    alternativePerspective,
+    isAltLoading,
+    generateAltPerspective,
+    refetchAltPerspective,
+    startAltCountdown,
+  ]);
 
-  const handleCompleteAlternativePerspective = useCallback(() => {
-    setQuizUnlocked(true);
-  }, []);
-
-  // Handle quiz: generate data if needed, open modal, and award quiz attempt points.
+  // open quiz & award attempt points
   const handleOpenQuiz = useCallback(async () => {
-    if (!articleId) {
-      toast.error("No article to create quiz from.");
-      return;
-    }
+    if (!articleId) return toast.error("No article to create quiz from.");
     if (!quiz && !isQuizLoading) {
-      try {
-        await generateQuiz(articleId).unwrap();
-        await refetchQuiz();
-      } catch (err: any) {
-        toast.error(err?.data?.message || "Failed to generate quiz");
-        return;
-      }
+      await generateQuiz(articleId).unwrap();
+      await refetchQuiz();
     }
     setQuizOpen(true);
     try {
       const res = await addUserPoints({ action: "quiz_attempt", article_id: articleId }).unwrap();
       if (res.success) {
         toast.success("+15 Points for attempting the quiz!");
-        if (res.new_badges?.length > 0) {
+        if (res.new_badges?.length) {
           toast.success(`New Badge: ${res.new_badges.join(", ")}`);
         }
-      } else {
-        toast(res.message || "Points already awarded");
       }
     } catch {
       toast.error("Failed to award quiz attempt points.");
     }
-  }, [articleId, quiz, isQuizLoading, generateQuiz, refetchQuiz, addUserPoints]);
+  }, [
+    articleId,
+    quiz,
+    isQuizLoading,
+    generateQuiz,
+    refetchQuiz,
+    addUserPoints,
+  ]);
 
   return (
     <motion.div
@@ -276,22 +368,27 @@ const ArticleDetail: React.FC<ArticleDetailProps> = ({ articleId, article, onBac
       </button>
 
       {/* Article Content */}
-      <ArticleContent
-        article={article}
-        handleGenerateArticle={async () => {
-          if (!articleId) return;
-          try {
-            await generateArticle("Any Topic").unwrap();
-            toast.success("Article generated!");
-          } catch (err: any) {
-            toast.error(err?.data?.message || "Failed to generate article");
-          }
-        }}
-        isGeneratingArticle={isGeneratingArticle}
-      />
+      <div
+        ref={articleRef}
+        className="relative w-5/6 border-2 border-blue-500 rounded-md overflow-hidden"
+      >
+        <ArticleContent
+          article={article}
+          handleGenerateArticle={async () => {
+            if (!articleId) return;
+            try {
+              await generateArticle("Any Topic").unwrap();
+              toast.success("Article generated!");
+            } catch (err: any) {
+              toast.error(err.data?.message || "Failed to generate article");
+            }
+          }}
+          isGeneratingArticle={isGeneratingArticle}
+        />
+      </div>
 
-      {/* Right Side Cards */}
-      <div className="w-1/4 flex flex-col space-y-3">
+      {/* Sidebar Cards */}
+      <div className="w-1/6 flex flex-col space-y-3">
         <EyeTrackingCard
           eyeTrackingSessionId={eyeTrackingSessionId}
           handleStartEyeTracking={handleStartEyeTracking}
@@ -303,8 +400,8 @@ const ArticleDetail: React.FC<ArticleDetailProps> = ({ articleId, article, onBac
         />
         <ReadingCountdownCard
           article={article}
-          articlePointsAwarded={articlePointsAwarded}
           articleCountdown={articleCountdown}
+          articlePointsAwarded={articlePointsAwarded}
         />
         <AlternativePerspectiveCard
           article={article}
@@ -323,23 +420,21 @@ const ArticleDetail: React.FC<ArticleDetailProps> = ({ articleId, article, onBac
         />
       </div>
 
-      {/* Gaze Overlay */}
+      {/* Live Gaze Overlay */}
       {liveGaze && <LiveGazeOverlay gaze={liveGaze} />}
 
-      {/* Eye Tracking Socket Listener (for Tobii) */}
-      {trackingMethod === "tobii" && (
+      {/* Eye Tracking Source */}
+      {trackingMethod === "tobii" && eyeTrackingSessionId && (
         <EyeTrackingSocketListener
-          onGazeData={(data) => setLiveGaze({ x: data.gaze_x, y: data.gaze_y })}
+          onGazeData={(data) => handleGazeData(data.gaze_x, data.gaze_y)}
         />
       )}
-
-      {/* Webcam Gaze Tracker (for Webcam) */}
       {trackingMethod === "webcam" && eyeTrackingSessionId && (
         <WebcamGazeTracker
-          key={eyeTrackingSessionId || "none"}
+          key={eyeTrackingSessionId}
           isActive={!!eyeTrackingSessionId}
           sessionId={eyeTrackingSessionId}
-          onGazeData={(data) => setLiveGaze({ x: data.x, y: data.y })}
+          onGazeData={(data) => handleGazeData(data.x, data.y)}
         />
       )}
 
@@ -348,7 +443,10 @@ const ArticleDetail: React.FC<ArticleDetailProps> = ({ articleId, article, onBac
         isOpen={isAltPerspectiveOpen}
         onClose={() => setAltPerspectiveOpen(false)}
         alternative={alternativePerspective}
-        onComplete={handleCompleteAlternativePerspective}
+        onComplete={() => {
+          setQuizUnlocked(true);
+          setAltPerspectiveOpen(false);
+        }}
       />
       <QuizModal isOpen={isQuizOpen} onClose={() => setQuizOpen(false)} quiz={quiz} />
     </motion.div>

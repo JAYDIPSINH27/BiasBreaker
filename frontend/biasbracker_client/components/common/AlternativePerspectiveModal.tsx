@@ -1,6 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
+import ExplainabilityInfo from "@/components/common/ExplainabilityInfo";
 
 const AlternativePerspectiveModal = ({
   isOpen,
@@ -24,7 +25,7 @@ const AlternativePerspectiveModal = ({
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
     >
-      <div className="bg-white p-6 rounded-lg shadow-lg max-w-3xl w-full max-h-[80vh] overflow-y-auto">
+      <div className="bg-white p-6 rounded-lg shadow-lg max-w-5xl w-full max-h-[80vh] overflow-y-auto">
         <h2 className="text-2xl font-bold text-gray-900">{title || "Alternative Perspective"}</h2>
 
         {/* Introduction */}
@@ -64,8 +65,19 @@ const AlternativePerspectiveModal = ({
           >
             Mark as Read
           </button>
+
         </div>
+        <div className="mt-4 text-xs text-yellow-800 bg-yellow-100 p-2 rounded flex items-center">
+  <ExplainabilityInfo category="warnings" keyName="genai" />
+  <span className="ml-2">AI‑generated content – verify critical facts.</span>
+</div>
       </div>
+      {/* GenAI warning */}
+
+
+
+
+
     </motion.div>
   );
 };
